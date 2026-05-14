@@ -4,7 +4,8 @@
 
 <img src="solari-coin.png" alt="solari" width="180" />
 
-**A payment module built for fast shipping and easy setup, with storage, history APIs, and webhooks included.**
+**A payment module built for fast shipping and easy setup,**
+**with storage, history APIs, and webhooks included.**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
