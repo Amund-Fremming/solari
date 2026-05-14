@@ -1,10 +1,10 @@
 <div align="center">
 
-# solari
+# 🪙 solari
 
-![solari](solari-coin.jpg)
+![solari](solari-coin.png)
 
-**A brief, punchy description of what Solari does goes here.**
+**A payment module built for fast shipping and easy setup, with storage, history APIs, and webhooks included.**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
@@ -13,6 +13,33 @@
 
 ---
 
-## 🚀 Overview
+## 🪾 Visual Tree
 
-Solari is a payment module designed to easy and fast setup payment solutions.
+```text
+solari/
+├── crates/                        # Rust workspace crates
+│   ├── solari-core/
+│   │   └── src/
+│   │       ├── modules/
+│   │       │   ├── vipps/
+│   │       │   ├── apple_pay/
+│   │       │   └── stripe/
+│   │       ├── traits.rs
+│   │       ├── core.rs
+│   │       └── lib.rs
+│   └── solari-client/
+│       └── src/
+│           ├── handlers/
+│           │   ├── webhook.rs
+│           │   └── api.rs
+│           ├── storage/
+│           │   └── traits.rs
+│           ├── core.rs
+│           └── lib.rs
+├── examples/                      # Example integrations / sandbox apps
+│   ├── next-test/
+│   ├── expo-test/
+│   └── axum-test/
+└── packages/                      # JavaScript/TypeScript packages
+   └── solari-js/
+```
