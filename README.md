@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🪙 solari
+# solari
 
-![solari](solari-coin.png)
+<img src="solari-coin.png" alt="solari" width="180" />
 
 **A payment module built for fast shipping and easy setup, with storage, history APIs, and webhooks included.**
 
@@ -43,3 +43,7 @@ solari/
 └── packages/                      # JavaScript/TypeScript packages
    └── solari-js/
 ```
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
