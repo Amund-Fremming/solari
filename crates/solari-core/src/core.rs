@@ -41,7 +41,7 @@ pub enum PaymentProviderError {
     UnsupportedOperation(&'static str),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum PaymentType {
     Vipps,
     ApplePay,
