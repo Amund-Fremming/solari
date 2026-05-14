@@ -20,27 +20,27 @@ impl PaymentModule {
         }
     }
 
-    pub fn vipps(&mut self, _config: VippsConfig) -> &mut Self {
+    pub fn vipps(&mut self, config: VippsConfig) -> &mut Self {
         // TODO - create instance with config, then set to some
-        let provider = VippsProvider;
+        let provider = VippsProvider::new(config);
 
         self.providers
             .insert(PaymentType::Vipps, Box::new(provider));
         self
     }
 
-    pub fn apple_pay(&mut self, _config: ApplePayConfig) -> &mut Self {
+    pub fn apple_pay(&mut self, config: ApplePayConfig) -> &mut Self {
         // TODO - create instance with config, then set to some
-        let provider = ApplePayProvider;
+        let provider = ApplePayProvider::new(config);
 
         self.providers
             .insert(PaymentType::ApplePay, Box::new(provider));
         self
     }
 
-    pub fn stripe(&mut self, _config: StripeConfig) -> &mut Self {
+    pub fn stripe(&mut self, config: StripeConfig) -> &mut Self {
         // TODO - create instance with config, then set to some
-        let provider = StripeProvider;
+        let provider = StripeProvider::new(config);
 
         self.providers
             .insert(PaymentType::Stripe, Box::new(provider));
