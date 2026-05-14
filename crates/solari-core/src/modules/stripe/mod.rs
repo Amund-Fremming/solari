@@ -1,2 +1,1 @@
-#[derive(Default)]
-pub struct StripeProvider;
+pub mod models;

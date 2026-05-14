@@ -1,5 +1,6 @@
 pub mod core;
 pub mod modules;
+pub mod payment_module;
 pub mod traits;
 
 // Re-exporting key components for external use

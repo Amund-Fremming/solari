@@ -1,2 +1,1 @@
-#[derive(Default)]
-pub struct VippsProvider;
+pub mod models;
