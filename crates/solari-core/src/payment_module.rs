@@ -1,40 +1,60 @@
-use crate::modules::{
-    apple_pay::models::{ApplePayConfig, ApplePayProvider},
-    stripe::models::{StripeConfig, StripeProvider},
-    vipps::models::{VippsConfig, VippsProvider},
+use crate::{
+    core::{PaymentProviderError, PaymentProviderResponse, PaymentType},
+    modules::{
+        apple_pay::models::{ApplePayConfig, ApplePayProvider},
+        stripe::models::{StripeConfig, StripeProvider},
+        vipps::models::{VippsConfig, VippsProvider},
+    },
+    traits::PaymentProvider,
 };
+use std::collections::HashMap;
 
-#[derive(Debug)]
 pub struct PaymentModule {
-    pub vipps: Option<VippsProvider>,
-    pub apple_pay: Option<ApplePayProvider>,
-    pub stripe: Option<StripeProvider>,
+    providers: HashMap<PaymentType, Box<dyn PaymentProvider>>,
 }
 
 impl PaymentModule {
     pub fn new() -> Self {
         PaymentModule {
-            vipps: None,
-            apple_pay: None,
-            stripe: None,
+            providers: HashMap::new(),
         }
     }
 
     pub fn vipps(&mut self, _config: VippsConfig) -> &mut Self {
         // TODO - create instance with config, then set to some
-        self.vipps = Some(VippsProvider);
+        let provider = VippsProvider;
+
+        self.providers
+            .insert(PaymentType::Vipps, Box::new(provider));
         self
     }
 
     pub fn apple_pay(&mut self, _config: ApplePayConfig) -> &mut Self {
         // TODO - create instance with config, then set to some
-        self.apple_pay = Some(ApplePayProvider);
+        let provider = ApplePayProvider;
+
+        self.providers
+            .insert(PaymentType::ApplePay, Box::new(provider));
         self
     }
 
     pub fn stripe(&mut self, _config: StripeConfig) -> &mut Self {
         // TODO - create instance with config, then set to some
-        self.stripe = Some(StripeProvider);
+        let provider = StripeProvider;
+
+        self.providers
+            .insert(PaymentType::Stripe, Box::new(provider));
         self
+    }
+
+    pub fn pay(
+        &self,
+        provider: PaymentType,
+        amount: u32,
+    ) -> Result<PaymentProviderResponse, PaymentProviderError> {
+        self.providers
+            .get(&provider)
+            .ok_or(PaymentProviderError::NotConfigured(provider))?
+            .pay(amount)
     }
 }

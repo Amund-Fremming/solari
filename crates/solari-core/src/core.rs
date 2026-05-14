@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 pub enum PaymentStatus {
     Pending,
@@ -8,14 +10,14 @@ pub enum PaymentStatus {
 
 #[derive(Debug)]
 pub struct PaymentProviderResponse {
-    status: PaymentStatus,
-    paid: u32,
+    pub status: PaymentStatus,
+    pub paid: u32,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum PaymentProviderError {
-    #[error("payment provider is not configured")]
-    NotConfigured,
+    #[error("payment provider {0} is not configured")]
+    NotConfigured(PaymentType),
 
     #[error("invalid payment amount: {0}")]
     InvalidAmount(u32),
@@ -37,4 +39,23 @@ pub enum PaymentProviderError {
 
     #[error("payment operation is not supported: {0}")]
     UnsupportedOperation(&'static str),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PaymentType {
+    Vipps,
+    ApplePay,
+    Stripe,
+}
+
+impl fmt::Display for PaymentType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            PaymentType::Vipps => "vipps",
+            PaymentType::ApplePay => "apple_pay",
+            PaymentType::Stripe => "stripe",
+        };
+
+        f.write_str(name)
+    }
 }
