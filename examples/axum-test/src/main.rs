@@ -70,11 +70,11 @@ async fn main() {
         .route("/pay/:payment_type", post(pay))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001")
         .await
-        .expect("failed to bind 0.0.0.0:3000");
+        .expect("failed to bind 0.0.0.0:3001");
 
-    println!("axum-test listening on http://0.0.0.0:3000");
+    println!("axum-test listening on http://0.0.0.0:3001");
     axum::serve(listener, app).await.expect("server failed");
 }
 

@@ -6,7 +6,7 @@ web:
 
 # Run the mobile test app (Expo)
 mobile:
-  cd examples/expo-test && npm install && npm run start
+  cd examples/expo-test && npm install && npx expo start 
 
 # Run the Axum test server
 axum:
