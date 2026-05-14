@@ -1,0 +1,20 @@
+{
+  "name": "@solari/solari-js",
+  "version": "0.1.0",
+  "description": "JavaScript utilities for Solari integrations",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

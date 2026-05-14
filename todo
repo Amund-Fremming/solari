@@ -1,0 +1,7 @@
+- [ ] Add GitHub secret `CARGO_REGISTRY_TOKEN` (crates.io publish token)
+- [ ] Add GitHub secret `NPM_TOKEN` (npm publish token for @solari scope/package)
+- [ ] Replace placeholder repository URL in `Cargo.toml` (`https://github.com/your-org/solari`)
+- [ ] Set final npm package name in `packages/solari-js/package.json` if scope differs
+- [ ] Create/push release tags:
+  - Rust publish: `rust-v0.1.0`
+  - NPM publish: `js-v0.1.0`

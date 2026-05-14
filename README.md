@@ -18,6 +18,9 @@
 ```text
 solari/
 ├── crates/                        # Rust workspace crates
+│   ├── solari/                    # Main facade crate (feature flags)
+│   │   └── src/
+│   │       └── lib.rs
 │   ├── solari-core/
 │   │   └── src/
 │   │       ├── modules/
@@ -40,6 +43,10 @@ solari/
 │   ├── next-test/
 │   ├── expo-test/
 │   └── axum-test/
+├── .github/
+│   └── workflows/
+│       ├── publish-rust.yml
+│       └── publish-npm.yml
 └── packages/                      # JavaScript/TypeScript packages
    └── solari-js/
 ```

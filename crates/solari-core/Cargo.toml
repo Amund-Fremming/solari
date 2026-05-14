@@ -1,0 +1,11 @@
+[package]
+name = "solari-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core payment abstractions and implementations for Solari"
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true

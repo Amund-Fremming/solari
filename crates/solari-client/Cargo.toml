@@ -1,0 +1,13 @@
+[package]
+name = "solari-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Client-side helpers for Solari integrations"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+solari-core = { path = "../solari-core", version = "0.1.0" }

@@ -1,0 +1,14 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^cd /Users/amund\\.fremming/Documents/code/solari/packages/solari-js && npm install && npm run build$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  "rust-analyzer.checkOnSave": true,
+  "rust-analyzer.inlayHints.enable": false
+}

@@ -1,0 +1,19 @@
+set shell := ["bash", "-cu"]
+
+# Run the web test app (Next.js)
+web:
+  cd examples/next-test && npm install && npm run dev
+
+# Run the mobile test app (Expo)
+mobile:
+  cd examples/expo-test && npm install && npm run start
+
+# Run the Axum test server
+axum:
+  cargo run -p axum-test
+
+# Local CI checks for Rust workspace quality gates
+local-ci:
+  cargo fmt --all --check
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
+  cargo test --workspace --all-features
