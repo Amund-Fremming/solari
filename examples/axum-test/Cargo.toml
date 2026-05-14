@@ -7,3 +7,6 @@ publish = false
 [dependencies]
 axum.workspace = true
 tokio.workspace = true
+serde.workspace = true
+solari-core = { path = "../../crates/solari-core" }
+solari-client = { path = "../../crates/solari-client" }

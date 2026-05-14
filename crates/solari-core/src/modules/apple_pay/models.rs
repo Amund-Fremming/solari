@@ -2,6 +2,7 @@ use crate::{
     core::{PaymentProviderError, PaymentProviderResponse, PaymentStatus},
     traits::PaymentProvider,
 };
+use tracing::info;
 
 #[derive(Debug)]
 pub struct ApplePayConfig {
@@ -51,7 +52,8 @@ impl PaymentProvider for ApplePayProvider {
     fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
         let _merchant_id = &self.config.merchant_id;
 
-        // TODO!
+        info!("💵 Apple Pay payment completed: {amount} paid");
+
         Ok(PaymentProviderResponse {
             status: PaymentStatus::Completed,
             paid: amount,

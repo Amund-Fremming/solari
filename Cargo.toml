@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "crates/solari-core",
   "crates/solari-client",
+  "examples/axum-test",
 ]
 
 [workspace.package]

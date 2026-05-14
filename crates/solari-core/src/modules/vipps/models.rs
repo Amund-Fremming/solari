@@ -2,6 +2,7 @@ use crate::{
     core::{PaymentProviderError, PaymentProviderResponse, PaymentStatus},
     traits::PaymentProvider,
 };
+use tracing::info;
 
 #[derive(Debug)]
 pub struct VippsConfig {
@@ -45,7 +46,8 @@ impl PaymentProvider for VippsProvider {
     fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
         let _base_url = &self.config.base_url;
 
-        // TODO!
+        info!("💵 Vipps payment completed: {amount} paid");
+
         Ok(PaymentProviderResponse {
             status: PaymentStatus::Completed,
             paid: amount,

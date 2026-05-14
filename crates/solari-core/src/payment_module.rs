@@ -10,7 +10,7 @@ use crate::{
 use std::collections::HashMap;
 
 pub struct PaymentModule {
-    providers: HashMap<PaymentType, Box<dyn PaymentProvider>>,
+    providers: HashMap<PaymentType, Box<dyn PaymentProvider + Send + Sync>>,
 }
 
 impl PaymentModule {

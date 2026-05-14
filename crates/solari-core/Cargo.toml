@@ -9,3 +9,4 @@ description = "Core payment abstractions and implementations for Solari"
 [dependencies]
 serde.workspace = true
 thiserror.workspace = true
+tracing = "0.1"
