@@ -10,14 +10,13 @@ import {
 } from "react-native";
 
 import {
-  createNativeClient,
+  createNativeClientNoRedirect,
   type PaymentSnapshot,
   type VippsPaymentClient,
   VippsButtonNative,
 } from "@solari/solari-js/native";
 
-const vippsClient: VippsPaymentClient = createNativeClient({
-  callbackUrl: "solari-expo-test://vipps-return",
+const vippsClient: VippsPaymentClient = createNativeClientNoRedirect({
   openUrl: async (url: string) => {
     await Linking.openURL(url);
     return "opened";
@@ -91,7 +90,10 @@ export default function App() {
           setFeedback(`Latest status: ${response.payment.status}.`);
         }
       } catch (error) {
-        console.error("Failed to sync status after Vipps deep link return", error);
+        console.error(
+          "Failed to sync status after Vipps deep link return",
+          error,
+        );
 
         if (!cancelled) {
           const message =
@@ -114,7 +116,10 @@ export default function App() {
     const subscription = Linking.addEventListener("url", handleDeepLinkReturn);
 
     void Linking.getInitialURL().then((initialUrl) => {
-      if (!initialUrl || !initialUrl.startsWith("solari-expo-test://vipps-return")) {
+      if (
+        !initialUrl ||
+        !initialUrl.startsWith("solari-expo-test://vipps-return")
+      ) {
         return;
       }
 

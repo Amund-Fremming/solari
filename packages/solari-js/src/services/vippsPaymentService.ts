@@ -55,6 +55,7 @@ export type CreateWebClientOptions = {
 export type CreateNativeClientOptions = {
   apiBaseUrl?: string;
   callbackUrl?: string;
+  redirectScheme?: string;
   openUrl?: NativeUrlOpener;
 };
 
@@ -67,6 +68,7 @@ type VippsClientConfig = {
   platform: ClientPlatform;
   apiBaseUrl?: string;
   callbackUrl?: string;
+  redirectScheme?: string;
   openUrl?: NativeUrlOpener;
   noRedirect?: boolean;
 };
@@ -130,8 +132,35 @@ function getDefaultWebCallbackUrl(): string {
   return withDefaultWebRedirectParams("http://localhost:3000/vipps-return");
 }
 
-function getDefaultNativeCallbackUrl(): string {
+function getDefaultNativeCallbackUrl(configuredScheme?: string): string {
+  const normalizedScheme = configuredScheme?.trim().replace(/:\/\/$/, "");
+
+  if (typeof globalThis !== "undefined") {
+    const globalScope = globalThis as any;
+    const Linking = globalScope.ExpoLinking || globalScope.Linking;
+
+    if (Linking && typeof Linking.createURL === "function") {
+      try {
+        const generatedUrl = normalizedScheme
+          ? Linking.createURL("vipps-return", { scheme: normalizedScheme })
+          : Linking.createURL("vipps-return");
+        if (typeof generatedUrl === "string" && generatedUrl.trim()) {
+          return generatedUrl;
+        }
+      } catch {
+        // Fall through to static default.
+      }
+    }
+  }
+  if (normalizedScheme) {
+    return `${normalizedScheme}://vipps-return`;
+  }
+
   return "solari-expo-test://vipps-return";
+}
+
+function isWebUrl(candidate: string): boolean {
+  return /^https?:\/\//i.test(candidate);
 }
 
 function normalizeApiBaseUrl(candidate?: string): string | undefined {
@@ -166,10 +195,23 @@ function resolveWebCallbackUrl(configuredCallbackUrl?: string): string {
   return getDefaultWebCallbackUrl();
 }
 
-function resolveNativeCallbackUrl(configuredCallbackUrl?: string): string {
-  return (
-    normalizeCallbackUrl(configuredCallbackUrl) ?? getDefaultNativeCallbackUrl()
-  );
+function resolveNativeCallbackUrl(
+  configuredCallbackUrl?: string,
+  configuredScheme?: string,
+): string {
+  const normalized = normalizeCallbackUrl(configuredCallbackUrl);
+
+  if (normalized && !isWebUrl(normalized)) {
+    return normalized;
+  }
+
+  if (normalized && isWebUrl(normalized)) {
+    console.warn(
+      "Ignoring web callbackUrl for native Vipps flow. Using app deep-link scheme instead.",
+    );
+  }
+
+  return getDefaultNativeCallbackUrl(configuredScheme);
 }
 
 function getVippsProviderReturnUrl(
@@ -182,7 +224,7 @@ function getVippsProviderReturnUrl(
 
 function resolveClientCallbackUrl(config: VippsClientConfig): string {
   if (config.platform === "native") {
-    return resolveNativeCallbackUrl(config.callbackUrl);
+    return resolveNativeCallbackUrl(config.callbackUrl, config.redirectScheme);
   }
 
   return resolveWebCallbackUrl(config.callbackUrl);

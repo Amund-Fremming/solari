@@ -8,7 +8,7 @@ use axum::{
     extract::Query,
     extract::State,
     http::{Method, StatusCode},
-    response::Html,
+    response::{Html, IntoResponse, Redirect},
     routing::{get, post},
     Json, Router,
 };
@@ -261,92 +261,33 @@ fn sanitize_app_return_url(candidate: Option<String>) -> Option<String> {
     None
 }
 
-async fn vipps_return(Query(query): Query<VippsReturnQuery>) -> Html<String> {
+async fn vipps_return(Query(query): Query<VippsReturnQuery>) -> impl IntoResponse {
     if let Some(app_return_url) = sanitize_app_return_url(query.app_return_url) {
-        return Html(format!(
-            r#"
-            <!doctype html>
-            <html lang="en">
-                <head>
-                    <meta charset="utf-8" />
-                    <meta name="viewport" content="width=device-width, initial-scale=1" />
-                    <title>Returning to app</title>
-                    <meta http-equiv="refresh" content="0;url={app_return_url}" />
-                </head>
-                <body>
-                    <p>Returning to app...</p>
-                    <script>
-                        window.location.replace({app_return_url:?});
-                    </script>
-                </body>
-            </html>
-            "#
-        ));
+        return Redirect::temporary(&app_return_url).into_response();
     }
 
     Html(
         r#"
-        <!doctype html>
-        <html lang="en">
-            <head>
-                <meta charset="utf-8" />
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <title>Payment complete</title>
-                <style>
-                    body {
-                        margin: 0;
-                        min-height: 100vh;
-                        display: grid;
-                        place-items: center;
-                        font-family: system-ui, sans-serif;
-                        background: #fff8ef;
-                        color: #23160d;
+        <script>
+            (function () {
+                const openedAsPopup = !!window.opener && !window.opener.closed;
+                if (openedAsPopup) {
+                    try {
+                        window.opener.postMessage({ type: "solari-vipps-return", ok: true }, "*");
+                    } catch (_) {
+                        // Ignore cross-window messaging issues.
                     }
+                }
 
-                    .card {
-                        width: min(92vw, 420px);
-                        border-radius: 14px;
-                        background: white;
-                        box-shadow: 0 12px 28px rgba(35, 22, 13, 0.12);
-                        padding: 24px;
-                        text-align: center;
-                    }
-
-                    h1 {
-                        margin: 0 0 10px;
-                        color: #ff5b24;
-                        font-size: 24px;
-                    }
-
-                    p {
-                        margin: 0;
-                        line-height: 1.5;
-                    }
-                </style>
-            </head>
-            <body>
-                <section class="card">
-                    <h1>Payment complete</h1>
-                    <p>You can return to the original app or browser tab.</p>
-                </section>
-                <script>
-                    const openedAsPopup = !!window.opener && !window.opener.closed;
-
-                    if (openedAsPopup) {
-                        try {
-                            window.opener.postMessage({ type: "solari-vipps-return", ok: true }, "*");
-                        } catch (_) {
-                            // Ignore cross-window messaging issues.
-                        }
-
-                        window.close();
-                    }
-                </script>
-            </body>
-        </html>
+                setTimeout(function () {
+                    window.close();
+                }, 50);
+            })();
+        </script>
         "#
         .to_string(),
     )
+    .into_response()
 }
 
 async fn pay(
