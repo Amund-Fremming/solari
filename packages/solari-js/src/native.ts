@@ -12,4 +12,4 @@ export {
   type PaymentSnapshot,
   type VippsPaymentFlowResult,
   VIPPS_COLORS,
-} from "./services/vippsPaymentService";
+} from "./services/solariPaymentService";

@@ -8,7 +8,7 @@ import { createElement } from "react";
 import { Image, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { SvgUri } from "react-native-svg";
 import type { VippsButtonProps } from "./VippsButton";
-import { VIPPS_COLORS } from "../services/vippsPaymentService";
+import { VIPPS_COLORS } from "../services/solariPaymentService";
 
 const VIPPS_BUTTON_SVG_SOURCE = Image.resolveAssetSource(
   require("./pay-with-vipps.svg"),

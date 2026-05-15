@@ -11,8 +11,8 @@ export function isApproved(summary: PaymentSummary): boolean {
 }
 
 // Re-export Vipps payment service
-export * from "./services/vippsPaymentService";
-export { vippsPaymentService } from "./services/vippsPaymentService";
+export * from "./services/solariPaymentService";
+export { vippsPaymentService } from "./services/solariPaymentService";
 
 // Re-export Vipps button components and types
 export * from "./components";
