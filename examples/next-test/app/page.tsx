@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import {
   VippsButtonWeb,
+  createWebClient,
   type PaymentSnapshot,
-  startVippsPayment,
-  vippsPaymentService,
   VIPPS_COLORS,
 } from "@solari/solari-js";
 
@@ -23,11 +22,35 @@ const FALLBACK_STATUS: PaymentSnapshot = {
   last_webhook_payload: null,
 };
 
+type VippsReturnMessage = {
+  type: "solari-vipps-return";
+  ok: boolean;
+  status?: string;
+  redirectTo?: string;
+};
+
+function isVippsReturnMessage(payload: unknown): payload is VippsReturnMessage {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  const candidate = payload as Partial<VippsReturnMessage>;
+  return (
+    candidate.type === "solari-vipps-return" &&
+    typeof candidate.ok === "boolean"
+  );
+}
+
+const vippsClient = createWebClient({
+  callbackUrl: process.env.NEXT_PUBLIC_VIPPS_WEB_RETURN_URL,
+});
+
 export default function HomePage() {
   const [payment, setPayment] = useState<PaymentSnapshot>(FALLBACK_STATUS);
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [networkError, setNetworkError] = useState<string | null>(null);
+  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
 
   const formatErrorMessage = (error: unknown): string => {
     if (error instanceof Error && error.message) {
@@ -39,7 +62,7 @@ export default function HomePage() {
 
   const refreshPaymentStatus = async () => {
     try {
-      const response = await vippsPaymentService.getPaymentStatus();
+      const response = await vippsClient.getPaymentStatus();
       setPayment(response.payment);
       setNetworkError(null);
     } catch (error) {
@@ -60,10 +83,52 @@ export default function HomePage() {
     refreshPaymentStatus();
   }, []);
 
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (query.get("payment") !== "success") {
+      return;
+    }
+
+    setPaymentNotice("Payment completed successfully.");
+
+    query.delete("payment");
+    const nextQuery = query.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, []);
+
+  useEffect(() => {
+    const handleVippsReturnMessage = (event: MessageEvent<unknown>) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (!isVippsReturnMessage(event.data)) {
+        return;
+      }
+
+      if (event.data.ok) {
+        setPaymentNotice("Payment completed successfully.");
+
+        if (event.data.redirectTo) {
+          window.location.assign(event.data.redirectTo);
+          return;
+        }
+      }
+
+      void refreshPaymentStatus();
+    };
+
+    window.addEventListener("message", handleVippsReturnMessage);
+    return () => {
+      window.removeEventListener("message", handleVippsReturnMessage);
+    };
+  }, []);
+
   const handleStartPayment = async () => {
     setIsLoading(true);
     try {
-      const result = await startVippsPayment();
+      const result = await vippsClient.startVippsPayment();
       setPayment(result.payment);
       setNetworkError(null);
     } catch (error) {
@@ -82,7 +147,7 @@ export default function HomePage() {
 
   const handleReset = async () => {
     try {
-      const response = await vippsPaymentService.resetPayment();
+      const response = await vippsClient.resetPayment();
       setPayment(response.payment);
       setNetworkError(null);
     } catch (error) {
@@ -119,6 +184,21 @@ export default function HomePage() {
             }}
           >
             <strong>Backend connection error:</strong> {networkError}
+          </section>
+        )}
+
+        {paymentNotice && (
+          <section
+            style={{
+              backgroundColor: "#f6ffed",
+              border: "1px solid #b7eb8f",
+              color: "#135200",
+              padding: "12px 16px",
+              borderRadius: "8px",
+              marginBottom: "20px",
+            }}
+          >
+            <strong>{paymentNotice}</strong>
           </section>
         )}
 
@@ -178,9 +258,7 @@ export default function HomePage() {
         >
           <h2>Controls</h2>
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <VippsButtonWeb
-              onClick={handleStartPayment}
-            />
+            <VippsButtonWeb onClick={handleStartPayment} />
             <button
               onClick={refreshPaymentStatus}
               style={{
@@ -247,7 +325,7 @@ export default function HomePage() {
               fontSize: "12px",
             }}
           >
-            {vippsPaymentService.resolveApiBaseUrl()}
+            {vippsClient.resolveApiBaseUrl()}
           </code>
         </section>
       </div>

@@ -1,31 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { vippsPaymentService, VIPPS_COLORS } from "@solari/solari-js";
+import { createWebClient, VIPPS_COLORS } from "@solari/solari-js";
+
+const vippsClient = createWebClient({
+  callbackUrl: process.env.NEXT_PUBLIC_VIPPS_WEB_RETURN_URL,
+});
+
+type ReturnMessage = {
+  type: "solari-vipps-return";
+  ok: boolean;
+  status: string;
+  redirectTo: string;
+};
+
+function getSafeRedirectPath(
+  rawRedirectPath: string | null,
+  defaultPath: string,
+): string {
+  if (!rawRedirectPath) {
+    return defaultPath;
+  }
+
+  try {
+    const parsedUrl = new URL(rawRedirectPath, window.location.origin);
+    if (parsedUrl.origin !== window.location.origin) {
+      return defaultPath;
+    }
+
+    return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+  } catch {
+    return defaultPath;
+  }
+}
 
 export default function VippsReturnPage() {
   const [status, setStatus] = useState("Processing payment...");
   const [payment, setPayment] = useState<any>(null);
 
-  const finishFlow = (delayMs: number, closePopup: boolean) => {
+  const finishFlow = (
+    delayMs: number,
+    closePopup: boolean,
+    message: ReturnMessage,
+  ) => {
     window.setTimeout(() => {
       const openedAsPopup = !!window.opener && !window.opener.closed;
 
-      if (closePopup && openedAsPopup) {
+      if (openedAsPopup) {
         try {
-          window.opener.postMessage(
-            { type: "solari-vipps-return", ok: true },
-            window.location.origin,
-          );
+          window.opener.postMessage(message, window.location.origin);
         } catch {
-          // Ignore cross-window messaging issues and continue closing.
+          // Ignore cross-window messaging issues and continue with redirect/close.
         }
 
-        window.close();
-        return;
+        if (closePopup) {
+          window.close();
+          return;
+        }
       }
 
-      window.location.replace("/");
+      window.location.replace(message.redirectTo);
     }, delayMs);
   };
 
@@ -38,28 +72,53 @@ export default function VippsReturnPage() {
   };
 
   useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const successRedirectPath = getSafeRedirectPath(
+      query.get("success_redirect"),
+      "/?payment=success",
+    );
+    const fallbackRedirectPath = getSafeRedirectPath(
+      query.get("fallback_redirect"),
+      "/",
+    );
+
     const checkPaymentStatus = async () => {
       try {
         // Wait a moment for the backend to process the redirect
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        const response = await vippsPaymentService.getPaymentStatus();
+        const response = await vippsClient.getPaymentStatus();
         setPayment(response.payment);
 
         if (response.payment.status === "completed") {
           setStatus("Payment completed. Closing window...");
-          finishFlow(700, true);
+          finishFlow(700, true, {
+            type: "solari-vipps-return",
+            ok: true,
+            status: response.payment.status,
+            redirectTo: successRedirectPath,
+          });
         } else {
           setStatus(
             `Payment status: ${response.payment.status}. Returning to app...`,
           );
-          finishFlow(1_500, false);
+          finishFlow(1_500, false, {
+            type: "solari-vipps-return",
+            ok: false,
+            status: response.payment.status,
+            redirectTo: fallbackRedirectPath,
+          });
         }
       } catch (error) {
         setStatus(
           `Error checking payment status: ${formatErrorMessage(error)}`,
         );
-        finishFlow(2_000, false);
+        finishFlow(2_000, false, {
+          type: "solari-vipps-return",
+          ok: false,
+          status: "error",
+          redirectTo: fallbackRedirectPath,
+        });
       }
     };
 

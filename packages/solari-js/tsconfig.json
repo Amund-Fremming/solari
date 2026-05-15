@@ -9,7 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["node"],
+    "types": ["node", "react", "react-native"],
     "jsx": "react-jsx",
     "esModuleInterop": true
   },

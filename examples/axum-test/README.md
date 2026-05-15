@@ -5,7 +5,7 @@ Axum test backend for Solari.
 ## Endpoints
 
 - `POST /pay`: attempts a fixed `67 NOK` Vipps payment and stores the latest state in memory.
-- `GET /vipps-return`: browser return bridge that deep-links back to the Expo app.
+- `GET /vipps-return`: return bridge used by Vipps callbacks. It can deep-link to Expo (`app_return_url=solari-expo-test://...`) or show a web completion page when no return target is provided.
 - `GET /status`: returns the latest in-memory payment state.
 - `POST /wipe`: resets the in-memory payment state.
 - `POST /webhook/vipps`: accepts Vipps webhook JSON and updates the in-memory payment state.
@@ -90,3 +90,5 @@ https://my-solari-dev.ngrok-free.app/webhook/vipps
 ## Mobile testing notes
 
 For real-device Expo testing, use your ngrok HTTPS domain as your backend base URL in the mobile app.
+
+For web testing where payment is approved on a phone, `return_url` must also be publicly reachable over HTTPS (for example the same ngrok domain). A localhost callback (`127.0.0.1` / `localhost`) cannot be opened from the phone.

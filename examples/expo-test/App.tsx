@@ -1,13 +1,28 @@
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import {
+  createNativeClient,
   type PaymentSnapshot,
-  startVippsPayment,
-  vippsPaymentService,
-} from "@solari/solari-js";
-import { VippsButtonNative } from "@solari/solari-js/native";
+  type VippsPaymentClient,
+  VippsButtonNative,
+} from "@solari/solari-js/native";
+
+const vippsClient: VippsPaymentClient = createNativeClient({
+  callbackUrl: "solari-expo-test://vipps-return",
+  openUrl: async (url: string) => {
+    await Linking.openURL(url);
+    return "opened";
+  },
+});
 
 const FALLBACK_STATUS: PaymentSnapshot = {
   provider: "vipps",
@@ -38,7 +53,7 @@ export default function App() {
 
     async function bootstrap() {
       try {
-        const response = await vippsPaymentService.getPaymentStatus();
+        const response = await vippsClient.getPaymentStatus();
 
         if (!cancelled) {
           setPayment(response.payment);
@@ -62,12 +77,62 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncAfterDeepLinkReturn() {
+      setFeedback("Returned from Vipps app. Syncing payment status...");
+
+      try {
+        const response = await vippsClient.getPaymentStatus();
+
+        if (!cancelled) {
+          setPayment(response.payment);
+          setFeedback(`Latest status: ${response.payment.status}.`);
+        }
+      } catch (error) {
+        console.error("Failed to sync status after Vipps deep link return", error);
+
+        if (!cancelled) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to sync payment state after returning from Vipps.";
+          setFeedback(message);
+        }
+      }
+    }
+
+    const handleDeepLinkReturn = (event: { url: string }) => {
+      if (!event.url.startsWith("solari-expo-test://vipps-return")) {
+        return;
+      }
+
+      void syncAfterDeepLinkReturn();
+    };
+
+    const subscription = Linking.addEventListener("url", handleDeepLinkReturn);
+
+    void Linking.getInitialURL().then((initialUrl) => {
+      if (!initialUrl || !initialUrl.startsWith("solari-expo-test://vipps-return")) {
+        return;
+      }
+
+      void syncAfterDeepLinkReturn();
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, []);
+
   async function handleRefresh() {
     setBusy(true);
     setFeedback("Refreshing payment state from the backend...");
 
     try {
-      const response = await vippsPaymentService.getPaymentStatus();
+      const response = await vippsClient.getPaymentStatus();
       setPayment(response.payment);
       setFeedback(`Latest status: ${response.payment.status}.`);
     } catch (error) {
@@ -86,7 +151,7 @@ export default function App() {
     setFeedback("Creating the Vipps payment and opening the approval flow...");
 
     try {
-      const result = await startVippsPayment();
+      const result = await vippsClient.startVippsPayment();
       const authResult = (result as { authSessionResult?: string | null })
         .authSessionResult;
       setPayment(result.payment);
@@ -145,7 +210,7 @@ export default function App() {
         <View style={styles.panel}>
           <Text style={styles.panelLabel}>Backend</Text>
           <Text style={styles.panelValue}>
-            {vippsPaymentService.resolveApiBaseUrl()}
+            {vippsClient.resolveApiBaseUrl()}
           </Text>
           <Text style={styles.panelHint}>
             Set EXPO_PUBLIC_AXUM_BASE_URL to your ngrok HTTPS URL when testing

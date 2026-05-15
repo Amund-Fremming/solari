@@ -2,6 +2,7 @@
   "expo": {
     "name": "expo-test",
     "slug": "expo-test",
+    "entryPoint": "./index.js",
     "scheme": "solari-expo-test",
     "version": "1.0.0",
     "orientation": "portrait",

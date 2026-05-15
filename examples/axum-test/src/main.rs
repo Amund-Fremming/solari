@@ -20,6 +20,7 @@ use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
 
 const WORKSPACE_ENV_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../.env");
+const EXPO_APP_RETURN_URL_PREFIX: &str = "solari-expo-test://";
 
 #[derive(Clone)]
 struct AppState {
@@ -243,35 +244,109 @@ async fn health(State(_state): State<AppState>) -> &'static str {
     "healthy"
 }
 
-async fn vipps_return(Query(query): Query<VippsReturnQuery>) -> Html<String> {
-    let requested_app_return_url = query
-        .app_return_url
-        .unwrap_or_else(|| "solari-expo-test://vipps-return".to_string());
-    let app_return_url = if requested_app_return_url.starts_with("solari-expo-test://") {
-        requested_app_return_url
-    } else {
-        "solari-expo-test://vipps-return".to_string()
-    };
+fn sanitize_app_return_url(candidate: Option<String>) -> Option<String> {
+    let candidate = candidate
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())?;
 
-    Html(format!(
+    if candidate.starts_with(EXPO_APP_RETURN_URL_PREFIX)
+        || candidate.starts_with("https://")
+        || candidate.starts_with("http://localhost")
+        || candidate.starts_with("http://127.0.0.1")
+        || candidate.starts_with("http://[::1]")
+    {
+        return Some(candidate);
+    }
+
+    None
+}
+
+async fn vipps_return(Query(query): Query<VippsReturnQuery>) -> Html<String> {
+    if let Some(app_return_url) = sanitize_app_return_url(query.app_return_url) {
+        return Html(format!(
+            r#"
+            <!doctype html>
+            <html lang="en">
+                <head>
+                    <meta charset="utf-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1" />
+                    <title>Returning to app</title>
+                    <meta http-equiv="refresh" content="0;url={app_return_url}" />
+                </head>
+                <body>
+                    <p>Returning to app...</p>
+                    <script>
+                        window.location.replace({app_return_url:?});
+                    </script>
+                </body>
+            </html>
+            "#
+        ));
+    }
+
+    Html(
         r#"
         <!doctype html>
         <html lang="en">
             <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <title>Returning to app</title>
-                <meta http-equiv="refresh" content="0;url={app_return_url}" />
+                <title>Payment complete</title>
+                <style>
+                    body {
+                        margin: 0;
+                        min-height: 100vh;
+                        display: grid;
+                        place-items: center;
+                        font-family: system-ui, sans-serif;
+                        background: #fff8ef;
+                        color: #23160d;
+                    }
+
+                    .card {
+                        width: min(92vw, 420px);
+                        border-radius: 14px;
+                        background: white;
+                        box-shadow: 0 12px 28px rgba(35, 22, 13, 0.12);
+                        padding: 24px;
+                        text-align: center;
+                    }
+
+                    h1 {
+                        margin: 0 0 10px;
+                        color: #ff5b24;
+                        font-size: 24px;
+                    }
+
+                    p {
+                        margin: 0;
+                        line-height: 1.5;
+                    }
+                </style>
             </head>
             <body>
-                <p>Returning to app...</p>
+                <section class="card">
+                    <h1>Payment complete</h1>
+                    <p>You can return to the original app or browser tab.</p>
+                </section>
                 <script>
-                    window.location.replace({app_return_url:?});
+                    const openedAsPopup = !!window.opener && !window.opener.closed;
+
+                    if (openedAsPopup) {
+                        try {
+                            window.opener.postMessage({ type: "solari-vipps-return", ok: true }, "*");
+                        } catch (_) {
+                            // Ignore cross-window messaging issues.
+                        }
+
+                        window.close();
+                    }
                 </script>
             </body>
         </html>
         "#
-    ))
+        .to_string(),
+    )
 }
 
 async fn pay(
