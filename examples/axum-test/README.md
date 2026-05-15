@@ -5,6 +5,7 @@ Axum test backend for Solari.
 ## Endpoints
 
 - `POST /pay`: attempts a fixed `67 NOK` Vipps payment and stores the latest state in memory.
+- `GET /vipps-return`: browser return bridge that deep-links back to the Expo app.
 - `GET /status`: returns the latest in-memory payment state.
 - `POST /wipe`: resets the in-memory payment state.
 - `POST /webhook/vipps`: accepts Vipps webhook JSON and updates the in-memory payment state.

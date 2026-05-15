@@ -108,6 +108,7 @@ dependencies = [
  "solari-client",
  "solari-core",
  "tokio",
+ "tower-http",
 ]
 
 [[package]]

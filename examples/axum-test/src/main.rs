@@ -5,8 +5,9 @@ use std::{
 };
 
 use axum::{
+    extract::Query,
     extract::State,
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::Html,
     routing::{get, post},
     Json, Router,
@@ -16,6 +17,7 @@ use serde::Serialize;
 use serde_json::Value;
 use solari_core::modules::vipps::{models::VippsConfig, provider::VippsProvider};
 use tokio::sync::RwLock;
+use tower_http::cors::{Any, CorsLayer};
 
 const WORKSPACE_ENV_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../.env");
 
@@ -82,6 +84,11 @@ struct PayRequestBody {
     return_url: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct VippsReturnQuery {
+    app_return_url: Option<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::from_path(WORKSPACE_ENV_PATH).ok();
@@ -97,14 +104,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         payment_state: Arc::new(RwLock::new(PaymentSnapshot::default())),
     };
 
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers(Any);
+
     let app = Router::new()
         .route("/", get(home_screen))
         .route("/health", get(health))
+        .route("/vipps-return", get(vipps_return))
         .route("/pay", post(pay))
         .route("/status", get(status))
         .route("/wipe", post(wipe))
         .route("/webhook/vipps", post(vipps_webhook))
         .route("/wehbook/vipps", post(vipps_webhook))
+        .layer(cors)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", listen_port))
@@ -227,6 +241,37 @@ async fn home_screen() -> Html<String> {
 
 async fn health(State(_state): State<AppState>) -> &'static str {
     "healthy"
+}
+
+async fn vipps_return(Query(query): Query<VippsReturnQuery>) -> Html<String> {
+    let requested_app_return_url = query
+        .app_return_url
+        .unwrap_or_else(|| "solari-expo-test://vipps-return".to_string());
+    let app_return_url = if requested_app_return_url.starts_with("solari-expo-test://") {
+        requested_app_return_url
+    } else {
+        "solari-expo-test://vipps-return".to_string()
+    };
+
+    Html(format!(
+        r#"
+        <!doctype html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <title>Returning to app</title>
+                <meta http-equiv="refresh" content="0;url={app_return_url}" />
+            </head>
+            <body>
+                <p>Returning to app...</p>
+                <script>
+                    window.location.replace({app_return_url:?});
+                </script>
+            </body>
+        </html>
+        "#
+    ))
 }
 
 async fn pay(

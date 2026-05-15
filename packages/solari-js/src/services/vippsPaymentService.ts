@@ -31,6 +31,7 @@ type ApiResponse = {
 export type VippsPaymentFlowResult = {
   payment: PaymentSnapshot;
   apiBaseUrl: string;
+  authSessionResult: string | null;
 };
 
 // Platform detection
@@ -67,6 +68,17 @@ function getAppReturnUrl(): string {
   }
 
   return "http://localhost:3000/vipps-return";
+}
+
+function getVippsProviderReturnUrl(apiBaseUrl: string): string {
+  const appReturnUrl = getAppReturnUrl();
+
+  if (detectPlatform() === "expo") {
+    const encodedAppReturnUrl = encodeURIComponent(appReturnUrl);
+    return `${apiBaseUrl}/vipps-return?app_return_url=${encodedAppReturnUrl}`;
+  }
+
+  return appReturnUrl;
 }
 
 function getEnvironmentVariable(name: string): string | undefined {
@@ -275,13 +287,14 @@ export async function resetPayment(): Promise<ApiResponse> {
 export async function startVippsPayment(): Promise<VippsPaymentFlowResult> {
   const preopenedWindow =
     detectPlatform() === "web" ? preopenWebPaymentWindow() : null;
+  const apiBaseUrl = resolveApiBaseUrl();
 
   await resetPayment();
 
   const startedPayment = await request<ApiResponse>("/pay", {
     method: "POST",
     body: JSON.stringify({
-      return_url: getAppReturnUrl(),
+      return_url: getVippsProviderReturnUrl(apiBaseUrl),
     }),
   });
 
@@ -289,12 +302,16 @@ export async function startVippsPayment(): Promise<VippsPaymentFlowResult> {
     throw new Error("Backend did not return a Vipps redirect URL.");
   }
 
-  await openAuthUrl(startedPayment.payment.redirect_url, preopenedWindow);
+  const authSessionResult = await openAuthUrl(
+    startedPayment.payment.redirect_url,
+    preopenedWindow,
+  );
   const payment = await waitForFinalStatus();
 
   return {
     payment,
-    apiBaseUrl: resolveApiBaseUrl(),
+    apiBaseUrl,
+    authSessionResult,
   };
 }
 

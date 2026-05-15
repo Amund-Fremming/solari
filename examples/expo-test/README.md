@@ -13,6 +13,10 @@ EXPO_PUBLIC_AXUM_BASE_URL=https://your-ngrok-domain.ngrok-free.app npm start
 If you run the iOS simulator locally, the app falls back to `http://127.0.0.1:3001`.
 If you run the Android emulator locally, the app falls back to `http://10.0.2.2:3001`.
 
+For real-device Vipps tests, keep the backend on an HTTPS public URL (for example ngrok).
+The mobile flow now sends Vipps back to `${EXPO_PUBLIC_AXUM_BASE_URL}/vipps-return`,
+and that endpoint deep-links into `solari-expo-test://vipps-return` so Expo can resume the auth session.
+
 ## Suggested bootstrap
 
 ```bash

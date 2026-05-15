@@ -1,13 +1,33 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { vippsPaymentService, VIPPS_COLORS } from "@solari/solari-js";
 
 export default function VippsReturnPage() {
-  const router = useRouter();
   const [status, setStatus] = useState("Processing payment...");
   const [payment, setPayment] = useState<any>(null);
+
+  const finishFlow = (delayMs: number, closePopup: boolean) => {
+    window.setTimeout(() => {
+      const openedAsPopup = !!window.opener && !window.opener.closed;
+
+      if (closePopup && openedAsPopup) {
+        try {
+          window.opener.postMessage(
+            { type: "solari-vipps-return", ok: true },
+            window.location.origin,
+          );
+        } catch {
+          // Ignore cross-window messaging issues and continue closing.
+        }
+
+        window.close();
+        return;
+      }
+
+      window.location.replace("/");
+    }, delayMs);
+  };
 
   const formatErrorMessage = (error: unknown): string => {
     if (error instanceof Error && error.message) {
@@ -27,28 +47,24 @@ export default function VippsReturnPage() {
         setPayment(response.payment);
 
         if (response.payment.status === "completed") {
-          setStatus("✓ Payment completed successfully!");
-          setTimeout(() => {
-            router.push("/");
-          }, 2000);
+          setStatus("Payment completed. Closing window...");
+          finishFlow(700, true);
         } else {
-          setStatus(`Payment status: ${response.payment.status}`);
-          setTimeout(() => {
-            router.push("/");
-          }, 3000);
+          setStatus(
+            `Payment status: ${response.payment.status}. Returning to app...`,
+          );
+          finishFlow(1_500, false);
         }
       } catch (error) {
         setStatus(
           `Error checking payment status: ${formatErrorMessage(error)}`,
         );
-        setTimeout(() => {
-          router.push("/");
-        }, 3000);
+        finishFlow(2_000, false);
       }
     };
 
     checkPaymentStatus();
-  }, [router]);
+  }, []);
 
   return (
     <main
@@ -82,9 +98,7 @@ export default function VippsReturnPage() {
             </p>
           </div>
         )}
-        <p style={{ color: "#999", marginTop: "20px" }}>
-          Redirecting back to home...
-        </p>
+        <p style={{ color: "#999", marginTop: "20px" }}>Returning to app...</p>
       </div>
     </main>
   );

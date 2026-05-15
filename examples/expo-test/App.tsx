@@ -1,25 +1,13 @@
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import * as WebBrowser from "expo-web-browser";
-import {
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { VippsButton } from "./src/components/VippsButton";
 import {
   type PaymentSnapshot,
   startVippsPayment,
   vippsPaymentService,
-  VIPPS_COLORS,
 } from "@solari/solari-js";
-
-WebBrowser.maybeCompleteAuthSession();
-(globalThis as any).ExpoWebBrowser = WebBrowser;
+import { VippsButtonNative } from "@solari/solari-js/native";
 
 const FALLBACK_STATUS: PaymentSnapshot = {
   provider: "vipps",
@@ -39,6 +27,9 @@ export default function App() {
   const [payment, setPayment] = useState<PaymentSnapshot>(FALLBACK_STATUS);
   const [feedback, setFeedback] = useState(
     "Ready to start the Vipps test flow.",
+  );
+  const [authSessionResult, setAuthSessionResult] = useState<string | null>(
+    null,
   );
   const [busy, setBusy] = useState(false);
 
@@ -91,21 +82,27 @@ export default function App() {
 
   async function handleVippsPress() {
     setBusy(true);
+    setAuthSessionResult(null);
     setFeedback("Creating the Vipps payment and opening the approval flow...");
 
     try {
       const result = await startVippsPayment();
+      const authResult = (result as { authSessionResult?: string | null })
+        .authSessionResult;
       setPayment(result.payment);
+      setAuthSessionResult(authResult ?? null);
 
       if (result.payment.status === "completed") {
-        setFeedback(`Vipps payment completed via ${result.apiBaseUrl}.`);
+        setFeedback(
+          `Vipps payment completed via ${result.apiBaseUrl} (auth session: ${authResult ?? "unknown"}).`,
+        );
       } else if (result.payment.status === "pending") {
         setFeedback(
-          `Payment is pending. Check your webhook tunnel if it does not settle.`,
+          `Payment is pending (auth session: ${authResult ?? "unknown"}). Check your webhook tunnel if it does not settle.`,
         );
       } else {
         setFeedback(
-          `Vipps payment ended with status ${result.payment.status}.`,
+          `Vipps payment ended with status ${result.payment.status} (auth session: ${authResult ?? "unknown"}).`,
         );
       }
     } catch (error) {
@@ -119,7 +116,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.heroCard}>
@@ -130,11 +127,7 @@ export default function App() {
             approval flow.
           </Text>
 
-          <VippsButton
-            onPress={handleVippsPress}
-            isLoading={busy}
-            disabled={busy}
-          />
+          <VippsButtonNative onClick={handleVippsPress} />
 
           <Pressable
             accessibilityRole="button"
@@ -163,6 +156,10 @@ export default function App() {
         <View style={styles.panel}>
           <Text style={styles.panelLabel}>Flow status</Text>
           <Text style={styles.feedback}>{feedback}</Text>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Auth session</Text>
+            <Text style={styles.rowValue}>{authSessionResult ?? "-"}</Text>
+          </View>
         </View>
 
         <View style={styles.panel}>
@@ -197,7 +194,7 @@ export default function App() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

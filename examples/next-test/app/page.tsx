@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  VippsButtonWeb,
   type PaymentSnapshot,
   startVippsPayment,
   vippsPaymentService,
@@ -177,22 +178,9 @@ export default function HomePage() {
         >
           <h2>Controls</h2>
           <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-            <button
+            <VippsButtonWeb
               onClick={handleStartPayment}
-              disabled={isLoading}
-              style={{
-                backgroundColor: VIPPS_COLORS.primary,
-                color: "white",
-                border: "none",
-                padding: "12px 24px",
-                borderRadius: "4px",
-                cursor: isLoading ? "not-allowed" : "pointer",
-                fontSize: "16px",
-                fontWeight: "bold",
-              }}
-            >
-              {isLoading ? "Processing..." : "Start Payment"}
-            </button>
+            />
             <button
               onClick={refreshPaymentStatus}
               style={{
