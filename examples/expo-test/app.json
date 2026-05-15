@@ -2,11 +2,10 @@
   "expo": {
     "name": "expo-test",
     "slug": "expo-test",
+    "scheme": "solari-expo-test",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "plugins": [
-      "expo-asset"
-    ]
+    "plugins": ["expo-asset"]
   }
 }

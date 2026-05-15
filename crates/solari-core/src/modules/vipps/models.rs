@@ -95,6 +95,13 @@ impl VippsCreatePaymentRequest {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VippsCreatePaymentResponse {
+    pub reference: Option<String>,
+    pub redirect_url: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct VippsAmount {
     pub currency: String,

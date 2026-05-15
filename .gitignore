@@ -3,3 +3,4 @@ node_modules/
 packages/solari-js/dist/
 /.env
 /crates/solari-core/.env
+/examples/axum-test/.env

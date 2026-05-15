@@ -11,6 +11,7 @@ use crate::{
     error::PaymentProviderError,
     modules::vipps::models::{
         CachedToken, VippsAccessTokenResponse, VippsConfig, VippsCreatePaymentRequest,
+        VippsCreatePaymentResponse,
     },
     traits::PaymentProvider,
 };
@@ -107,11 +108,12 @@ impl VippsProvider {
 
         Ok(cached_token)
     }
-}
 
-#[async_trait]
-impl PaymentProvider for VippsProvider {
-    async fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
+    pub async fn create_payment(
+        &self,
+        amount: u32,
+        return_url: Option<&str>,
+    ) -> Result<VippsCreatePaymentResponse, PaymentProviderError> {
         if amount == 0 {
             return Err(PaymentProviderError::InvalidAmount(amount));
         }
@@ -124,7 +126,9 @@ impl PaymentProvider for VippsProvider {
 
         let payload = VippsCreatePaymentRequest::new(
             amount,
-            "https://example.com/checkout/complete".to_string(),
+            return_url
+                .unwrap_or("https://example.com/checkout/complete")
+                .to_string(),
             "WEB_REDIRECT".to_string(),
         );
 
@@ -152,7 +156,18 @@ impl PaymentProvider for VippsProvider {
             )));
         }
 
+        let payload: VippsCreatePaymentResponse = response.json().await?;
+
         info!("💵 Vipps payment created: {amount} kr");
+
+        Ok(payload)
+    }
+}
+
+#[async_trait]
+impl PaymentProvider for VippsProvider {
+    async fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
+        self.create_payment(amount, None).await?;
 
         Ok(PaymentProviderResponse {
             status: PaymentStatus::Pending,

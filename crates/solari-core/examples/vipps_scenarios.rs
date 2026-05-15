@@ -4,7 +4,6 @@ use solari_core::modules::vipps::{
     models::{CachedToken, VippsConfig},
     provider::VippsProvider,
 };
-use solari_core::traits::PaymentProvider;
 use tracing::{error, info};
 
 fn required_env(key: &str) -> Result<String, Box<dyn Error>> {
@@ -69,11 +68,11 @@ async fn create_payment_scenario(amount: u32) -> Result<(), Box<dyn Error>> {
 
     let client = reqwest::Client::new();
     let provider = VippsProvider::new(client, config);
-    let response = provider.pay(amount).await?;
+    let response = provider.create_payment(amount, None).await?;
 
     info!(
-        "Vipps payment scenario response: status={:?}, paid={}",
-        response.status, response.paid
+        "Vipps payment scenario response: reference={:?}, redirect_url={:?}",
+        response.reference, response.redirect_url
     );
 
     Ok(())

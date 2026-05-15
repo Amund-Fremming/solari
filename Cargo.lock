@@ -101,7 +101,10 @@ name = "axum-test"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "dotenvy",
+ "reqwest",
  "serde",
+ "serde_json",
  "solari-client",
  "solari-core",
  "tokio",
