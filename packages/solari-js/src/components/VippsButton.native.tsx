@@ -107,7 +107,7 @@ export function VippsButton(props: VippsButtonProps) {
       testID: "vipps-button",
     },
     createElement(
-      View,
+      View as any,
       {
         style: styles.buttonContent,
       },
