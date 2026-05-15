@@ -10,15 +10,17 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~52.0.11",
-    "expo-asset": "~11.0.5",
-    "expo-status-bar": "~2.0.0",
-    "expo-web-browser": "^55.0.16",
-    "react": "18.3.1",
-    "react-native": "0.76.9"
+    "@solari/solari-js": "file:../../packages/solari-js",
+    "@vippsmobilepay/sdk": "^2.4.2",
+    "expo": "~54.0.0",
+    "expo-asset": "~12.0.0",
+    "expo-status-bar": "~3.0.9",
+    "expo-web-browser": "^15.0.11",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   },
   "devDependencies": {
-    "@types/react": "^18.3.12",
+    "@types/react": "^19.1.17",
     "typescript": "^5.6.3"
   }
 }

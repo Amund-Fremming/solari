@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import * as WebBrowser from "expo-web-browser";
 import {
-  ActivityIndicator,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -10,11 +10,16 @@ import {
   View,
 } from "react-native";
 
+import { VippsButton } from "./src/components/VippsButton";
 import {
   type PaymentSnapshot,
   startVippsPayment,
   vippsPaymentService,
-} from "./src/services/vippsPaymentService";
+  VIPPS_COLORS,
+} from "@solari/solari-js";
+
+WebBrowser.maybeCompleteAuthSession();
+(globalThis as any).ExpoWebBrowser = WebBrowser;
 
 const FALLBACK_STATUS: PaymentSnapshot = {
   provider: "vipps",
@@ -48,6 +53,7 @@ export default function App() {
           setPayment(response.payment);
         }
       } catch (error) {
+        console.error("Failed to bootstrap Vipps payment state", error);
         if (!cancelled) {
           const message =
             error instanceof Error
@@ -74,6 +80,7 @@ export default function App() {
       setPayment(response.payment);
       setFeedback(`Latest status: ${response.payment.status}.`);
     } catch (error) {
+      console.error("Failed to refresh Vipps payment state", error);
       const message =
         error instanceof Error ? error.message : "Refresh failed.";
       setFeedback(message);
@@ -94,7 +101,7 @@ export default function App() {
         setFeedback(`Vipps payment completed via ${result.apiBaseUrl}.`);
       } else if (result.payment.status === "pending") {
         setFeedback(
-          `Vipps returned ${result.browserResult}; backend status is still pending. Check your webhook tunnel if it does not settle.`,
+          `Payment is pending. Check your webhook tunnel if it does not settle.`,
         );
       } else {
         setFeedback(
@@ -102,6 +109,7 @@ export default function App() {
         );
       }
     } catch (error) {
+      console.error("Vipps payment flow failed", error);
       const message =
         error instanceof Error ? error.message : "Vipps payment failed.";
       setFeedback(message);
@@ -122,22 +130,11 @@ export default function App() {
             approval flow.
           </Text>
 
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
+          <VippsButton
             onPress={handleVippsPress}
-            style={({ pressed }) => [
-              styles.vippsButton,
-              pressed && !busy ? styles.vippsButtonPressed : null,
-              busy ? styles.vippsButtonDisabled : null,
-            ]}
-          >
-            {busy ? (
-              <ActivityIndicator color="#2f1c00" />
-            ) : (
-              <Text style={styles.vippsButtonLabel}>Pay with Vipps</Text>
-            )}
-          </Pressable>
+            isLoading={busy}
+            disabled={busy}
+          />
 
           <Pressable
             accessibilityRole="button"
@@ -246,25 +243,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
-  vippsButton: {
-    alignItems: "center",
-    backgroundColor: "#ff5b24",
-    borderRadius: 999,
-    minHeight: 58,
-    justifyContent: "center",
-    paddingHorizontal: 18,
-  },
-  vippsButtonPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.99 }],
-  },
   vippsButtonDisabled: {
     opacity: 0.65,
-  },
-  vippsButtonLabel: {
-    color: "#2f1c00",
-    fontSize: 18,
-    fontWeight: "800",
   },
   secondaryButton: {
     alignItems: "center",

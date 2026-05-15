@@ -79,11 +79,14 @@ impl VippsCreatePaymentRequest {
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
+        // Convert NOK to øre (minor units): 1 NOK = 100 øre
+        let amount_in_ore = amount * 100;
+
         Self {
             request_id: format!("solari-req-{now}-{amount}"),
             amount: VippsAmount {
                 currency: "NOK".to_string(),
-                value: amount,
+                value: amount_in_ore,
             },
             payment_method: VippsPaymentMethod {
                 kind: "WALLET".to_string(),

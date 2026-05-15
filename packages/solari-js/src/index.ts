@@ -9,3 +9,7 @@ export interface PaymentSummary {
 export function isApproved(summary: PaymentSummary): boolean {
   return summary.status === "approved";
 }
+
+// Re-export Vipps payment service
+export * from "./services/vippsPaymentService";
+export { vippsPaymentService } from "./services/vippsPaymentService";

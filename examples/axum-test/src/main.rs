@@ -277,6 +277,7 @@ async fn pay(
             }))
         }
         Err((status, message)) => {
+            eprintln!("/pay failed: {status} {message}");
             snapshot.status = "failed".to_string();
             snapshot.requested_amount = VIPPS_PAY_AMOUNT_NOK;
             snapshot.paid_amount = 0;
