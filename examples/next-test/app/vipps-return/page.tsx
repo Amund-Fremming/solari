@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  createWebClient,
-} from "@solari/solari-js";
+import { createWebClient } from "@solari/solari-js";
 
 const vippsClient = createWebClient({
   callbackUrl: process.env.NEXT_PUBLIC_VIPPS_WEB_RETURN_URL,
@@ -37,10 +35,7 @@ function getSafeRedirectPath(
 }
 
 export default function VippsReturnPage() {
-  const finishFlow = (
-    delayMs: number,
-    message: ReturnMessage,
-  ) => {
+  const finishFlow = (delayMs: number, message: ReturnMessage) => {
     window.setTimeout(() => {
       const openedAsPopup = !!window.opener && !window.opener.closed;
 

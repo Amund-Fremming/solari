@@ -1,1 +1,4 @@
-{}
+{
+  "/vipps-return/page": "app/vipps-return/page.js",
+  "/page": "app/page.js"
+}
