@@ -14,33 +14,6 @@ pub struct PaymentProviderResponse {
     pub paid: u32,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum PaymentProviderError {
-    #[error("payment provider {0} is not configured")]
-    NotConfigured(PaymentType),
-
-    #[error("invalid payment amount: {0}")]
-    InvalidAmount(u32),
-
-    #[error("payment provider authentication failed")]
-    AuthenticationFailed,
-
-    #[error("payment request timed out")]
-    Timeout,
-
-    #[error("payment provider is unavailable")]
-    ProviderUnavailable,
-
-    #[error("payment request failed: {0}")]
-    RequestFailed(String),
-
-    #[error("network error while contacting payment provider: {0}")]
-    NetworkError(String),
-
-    #[error("payment operation is not supported: {0}")]
-    UnsupportedOperation(&'static str),
-}
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum PaymentType {
     Vipps,

@@ -1,3 +1,5 @@
 /target
 node_modules/
 packages/solari-js/dist/
+/.env
+/crates/solari-core/.env

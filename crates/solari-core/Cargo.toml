@@ -7,6 +7,14 @@ repository.workspace = true
 description = "Core payment abstractions and implementations for Solari"
 
 [dependencies]
+async-trait = "0.1"
+reqwest = { version = "0.13.3", features = ["json"] }
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 tracing = "0.1"
+
+[dev-dependencies]
+dotenvy = "0.15"
+tokio.workspace = true
+tracing-subscriber = "0.3"

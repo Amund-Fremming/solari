@@ -1,8 +1,11 @@
-use crate::{
-    core::{PaymentProviderError, PaymentProviderResponse, PaymentStatus},
-    traits::PaymentProvider,
-};
-use tracing::info;
+use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+#[derive(Debug, Clone)]
+pub struct CachedToken {
+    pub token: String,
+    pub expires_at: u64,
+}
 
 #[derive(Debug)]
 pub struct VippsConfig {
@@ -31,26 +34,75 @@ impl VippsConfig {
     }
 }
 
-#[derive(Debug)]
-pub struct VippsProvider {
-    config: VippsConfig,
+#[derive(Debug, Deserialize)]
+pub struct VippsAccessTokenResponse {
+    #[serde(alias = "accessToken")]
+    pub access_token: String,
+
+    #[serde(default)]
+    expires_in: Option<VippsExpiresIn>,
 }
 
-impl VippsProvider {
-    pub fn new(config: VippsConfig) -> Self {
-        Self { config }
+impl VippsAccessTokenResponse {
+    pub fn expires_in_seconds(&self) -> u64 {
+        match &self.expires_in {
+            Some(VippsExpiresIn::Number(value)) => *value,
+            Some(VippsExpiresIn::Text(value)) => value.parse::<u64>().unwrap_or(3600),
+            None => 3600,
+        }
     }
 }
 
-impl PaymentProvider for VippsProvider {
-    fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
-        let _base_url = &self.config.base_url;
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum VippsExpiresIn {
+    Number(u64),
+    Text(String),
+}
 
-        info!("💵 Vipps payment completed: {amount} paid");
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VippsCreatePaymentRequest {
+    #[serde(skip_serializing)]
+    pub request_id: String,
+    pub amount: VippsAmount,
+    pub payment_method: VippsPaymentMethod,
+    pub reference: String,
+    pub return_url: String,
+    pub user_flow: String,
+}
 
-        Ok(PaymentProviderResponse {
-            status: PaymentStatus::Completed,
-            paid: amount,
-        })
+impl VippsCreatePaymentRequest {
+    pub fn new(amount: u32, return_url: String, user_flow: String) -> Self {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        Self {
+            request_id: format!("solari-req-{now}-{amount}"),
+            amount: VippsAmount {
+                currency: "NOK".to_string(),
+                value: amount,
+            },
+            payment_method: VippsPaymentMethod {
+                kind: "WALLET".to_string(),
+            },
+            reference: format!("solari-{now}-{amount}"),
+            return_url,
+            user_flow,
+        }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct VippsAmount {
+    pub currency: String,
+    pub value: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct VippsPaymentMethod {
+    #[serde(rename = "type")]
+    pub kind: String,
 }

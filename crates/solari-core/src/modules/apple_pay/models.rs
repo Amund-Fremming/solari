@@ -1,7 +1,9 @@
 use crate::{
-    core::{PaymentProviderError, PaymentProviderResponse, PaymentStatus},
+    core::{PaymentProviderResponse, PaymentStatus},
+    error::PaymentProviderError,
     traits::PaymentProvider,
 };
+use async_trait::async_trait;
 use tracing::info;
 
 #[derive(Debug)]
@@ -39,17 +41,20 @@ impl ApplePayConfig {
 
 #[derive(Debug)]
 pub struct ApplePayProvider {
+    client: reqwest::Client,
     config: ApplePayConfig,
 }
 
 impl ApplePayProvider {
-    pub fn new(config: ApplePayConfig) -> Self {
-        Self { config }
+    pub fn new(client: reqwest::Client, config: ApplePayConfig) -> Self {
+        Self { client, config }
     }
 }
 
+#[async_trait]
 impl PaymentProvider for ApplePayProvider {
-    fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
+    async fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
+        let _client = &self.client;
         let _merchant_id = &self.config.merchant_id;
 
         info!("💵 Apple Pay payment completed: {amount} paid");

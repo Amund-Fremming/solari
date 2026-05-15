@@ -33,8 +33,8 @@ struct PayResponse {
 }
 
 #[tokio::main]
-async fn main() {
-    let mut payment_module = PaymentModule::new();
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut payment_module = PaymentModule::new()?;
 
     payment_module
         .vipps(VippsConfig::new(
@@ -75,7 +75,9 @@ async fn main() {
         .expect("failed to bind 0.0.0.0:3001");
 
     println!("axum-test listening on http://0.0.0.0:3001");
-    axum::serve(listener, app).await.expect("server failed");
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
 
 async fn health(State(_state): State<AppState>) -> &'static str {
@@ -92,6 +94,7 @@ async fn pay(
     let response = state
         .payment_module
         .pay(provider, payload.amount)
+        .await
         .map_err(|err| (StatusCode::BAD_REQUEST, err.to_string()))?;
 
     Ok(Json(PayResponse {

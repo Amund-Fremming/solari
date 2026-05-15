@@ -1,7 +1,9 @@
 use crate::{
-    core::{PaymentProviderError, PaymentProviderResponse, PaymentStatus},
+    core::{PaymentProviderResponse, PaymentStatus},
+    error::PaymentProviderError,
     traits::PaymentProvider,
 };
+use async_trait::async_trait;
 use tracing::info;
 
 #[derive(Debug)]
@@ -33,17 +35,20 @@ impl StripeConfig {
 
 #[derive(Debug)]
 pub struct StripeProvider {
+    client: reqwest::Client,
     config: StripeConfig,
 }
 
 impl StripeProvider {
-    pub fn new(config: StripeConfig) -> Self {
-        Self { config }
+    pub fn new(client: reqwest::Client, config: StripeConfig) -> Self {
+        Self { client, config }
     }
 }
 
+#[async_trait]
 impl PaymentProvider for StripeProvider {
-    fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
+    async fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
+        let _client = &self.client;
         let _api_base_url = &self.config.api_base_url;
 
         info!("💵 Stripe payment completed: {amount} paid");
