@@ -134,7 +134,7 @@ export default function HomePage() {
     } catch (error) {
       const errorMessage = formatErrorMessage(error);
 
-      setPayment((prev) => ({
+      setPayment((prev: PaymentSnapshot) => ({
         ...prev,
         status: "failed",
         last_error: errorMessage,

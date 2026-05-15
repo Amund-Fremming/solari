@@ -4,7 +4,9 @@ export { VippsButton as VippsButtonNative } from "./components/VippsButton.nativ
 
 export {
   createNativeClient,
+  createNativeClientNoRedirect,
   create_native_client,
+  create_native_client_no_redirect,
   type CreateNativeClientOptions,
   type VippsPaymentClient,
   type PaymentSnapshot,

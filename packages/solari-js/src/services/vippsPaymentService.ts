@@ -68,6 +68,7 @@ type VippsClientConfig = {
   apiBaseUrl?: string;
   callbackUrl?: string;
   openUrl?: NativeUrlOpener;
+  noRedirect?: boolean;
 };
 
 // Platform detection
@@ -331,11 +332,26 @@ async function openAuthUrl(
   appReturnUrl: string,
   preopenedWindow?: Window | null,
   nativeUrlOpener?: NativeUrlOpener,
+  noRedirect?: boolean,
 ): Promise<string> {
   if (platform === "native") {
     if (nativeUrlOpener) {
       const openerResult = await nativeUrlOpener(redirectUrl, appReturnUrl);
       return openerResult ?? "opened";
+    }
+
+    if (noRedirect) {
+      try {
+        const globalScope = globalThis as any;
+        const Linking = globalScope.ExpoLinking || globalScope.Linking;
+
+        if (Linking && typeof Linking.openURL === "function") {
+          await Linking.openURL(redirectUrl);
+          return "opened";
+        }
+      } catch (error) {
+        console.warn("Failed to use native Linking.openURL", error);
+      }
     }
 
     // Use expo-web-browser for Expo - access from global scope
@@ -383,6 +399,15 @@ async function openAuthUrl(
     if (preopenedWindow && !preopenedWindow.closed) {
       preopenedWindow.location.href = redirectUrl;
       preopenedWindow.focus();
+
+      if (noRedirect) {
+        setTimeout(() => {
+          if (!preopenedWindow.closed) {
+            preopenedWindow.close();
+          }
+        }, 1200);
+      }
+
       return "opened";
     }
 
@@ -392,10 +417,19 @@ async function openAuthUrl(
       "width=600,height=800",
     );
     if (!popup) {
-      throw new Error(
-        "Popup blocked by browser. Please allow popups for this site and try again.",
-      );
+      // Fallback to same-tab navigation when the browser blocks popups.
+      window.location.assign(redirectUrl);
+      return "opened-same-tab";
     }
+
+    if (noRedirect) {
+      setTimeout(() => {
+        if (!popup.closed) {
+          popup.close();
+        }
+      }, 1200);
+    }
+
     return "opened";
   }
 
@@ -440,15 +474,19 @@ function createVippsClient(config: VippsClientConfig): VippsPaymentClient {
     const preopenedWindow =
       config.platform === "web" ? preopenWebPaymentWindow() : null;
     const apiBaseUrl = getResolvedApiBaseUrl();
-    const appReturnUrl = getCallbackUrl();
+    const appReturnUrl = config.noRedirect ? "" : getCallbackUrl();
 
     await resetPayment();
 
+    const payload = config.noRedirect
+      ? {}
+      : {
+          return_url: getVippsProviderReturnUrl(apiBaseUrl, appReturnUrl),
+        };
+
     const startedPayment = await request<ApiResponse>(apiBaseUrl, "/pay", {
       method: "POST",
-      body: JSON.stringify({
-        return_url: getVippsProviderReturnUrl(apiBaseUrl, appReturnUrl),
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!startedPayment.payment.redirect_url) {
@@ -461,7 +499,17 @@ function createVippsClient(config: VippsClientConfig): VippsPaymentClient {
       appReturnUrl,
       preopenedWindow,
       config.openUrl,
+      config.noRedirect,
     );
+
+    if (config.noRedirect) {
+      return {
+        payment: startedPayment.payment,
+        apiBaseUrl,
+        authSessionResult,
+      };
+    }
+
     const payment = await waitForFinalStatusWith(getPaymentStatus);
 
     return {
@@ -498,8 +546,30 @@ export function createNativeClient(
   });
 }
 
+export function createWebClientNoRedirect(
+  options: CreateWebClientOptions = {},
+): VippsPaymentClient {
+  return createVippsClient({
+    platform: "web",
+    noRedirect: true,
+    ...options,
+  });
+}
+
+export function createNativeClientNoRedirect(
+  options: CreateNativeClientOptions = {},
+): VippsPaymentClient {
+  return createVippsClient({
+    platform: "native",
+    noRedirect: true,
+    ...options,
+  });
+}
+
 export const create_web_client = createWebClient;
 export const create_native_client = createNativeClient;
+export const create_web_client_no_redirect = createWebClientNoRedirect;
+export const create_native_client_no_redirect = createNativeClientNoRedirect;
 
 function resolveDefaultApiBaseUrl(): string {
   return createDefaultClient().resolveApiBaseUrl();
@@ -521,5 +591,7 @@ export const vippsPaymentService = {
   getPaymentStatus,
   resetPayment,
   startVippsPayment,
+  createWebClientNoRedirect,
+  createNativeClientNoRedirect,
   resolveApiBaseUrl: resolveDefaultApiBaseUrl,
 };

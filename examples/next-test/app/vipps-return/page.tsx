@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createWebClient, VIPPS_COLORS } from "@solari/solari-js";
+import {
+  createWebClient,
+  type PaymentSnapshot,
+  VIPPS_COLORS,
+} from "@solari/solari-js";
 
 const vippsClient = createWebClient({
   callbackUrl: process.env.NEXT_PUBLIC_VIPPS_WEB_RETURN_URL,
@@ -35,8 +39,14 @@ function getSafeRedirectPath(
 }
 
 export default function VippsReturnPage() {
-  const [status, setStatus] = useState("Processing payment...");
-  const [payment, setPayment] = useState<any>(null);
+  const [status, setStatus] = useState("Checking payment status...");
+  const [details, setDetails] = useState(
+    "Please wait while we sync the payment with your app.",
+  );
+  const [nextAction, setNextAction] = useState<
+    { label: string; href: string } | undefined
+  >(undefined);
+  const [payment, setPayment] = useState<PaymentSnapshot | null>(null);
 
   const finishFlow = (
     delayMs: number,
@@ -55,6 +65,15 @@ export default function VippsReturnPage() {
 
         if (closePopup) {
           window.close();
+
+          // If browser prevents closing, keep user on this page with clear guidance.
+          window.setTimeout(() => {
+            if (!window.closed) {
+              setStatus("Payment synced");
+              setDetails("You can close this window and continue in your app.");
+              setNextAction(undefined);
+            }
+          }, 250);
           return;
         }
       }
@@ -91,7 +110,8 @@ export default function VippsReturnPage() {
         setPayment(response.payment);
 
         if (response.payment.status === "completed") {
-          setStatus("Payment completed. Closing window...");
+          setStatus("Payment completed");
+          setDetails("Closing this window and returning to your app...");
           finishFlow(700, true, {
             type: "solari-vipps-return",
             ok: true,
@@ -99,10 +119,9 @@ export default function VippsReturnPage() {
             redirectTo: successRedirectPath,
           });
         } else {
-          setStatus(
-            `Payment status: ${response.payment.status}. Returning to app...`,
-          );
-          finishFlow(1_500, false, {
+          setStatus(`Payment status: ${response.payment.status}`);
+          setDetails("Returning to your app...");
+          finishFlow(1_200, true, {
             type: "solari-vipps-return",
             ok: false,
             status: response.payment.status,
@@ -110,10 +129,12 @@ export default function VippsReturnPage() {
           });
         }
       } catch (error) {
-        setStatus(
-          `Error checking payment status: ${formatErrorMessage(error)}`,
+        setStatus("Could not verify payment");
+        setDetails(
+          `You can close this window and continue in your app. (${formatErrorMessage(error)})`,
         );
-        finishFlow(2_000, false, {
+        setNextAction({ label: "Return to app", href: fallbackRedirectPath });
+        finishFlow(2_000, true, {
           type: "solari-vipps-return",
           ok: false,
           status: "error",
@@ -138,15 +159,25 @@ export default function VippsReturnPage() {
       <div
         style={{
           backgroundColor: "white",
-          padding: "40px",
-          borderRadius: "8px",
+          padding: "36px",
+          borderRadius: "16px",
           textAlign: "center",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          boxShadow: "0 20px 45px rgba(35, 22, 13, 0.12)",
+          width: "min(560px, calc(100vw - 32px))",
         }}
       >
-        <h1 style={{ color: VIPPS_COLORS.primary, marginBottom: "20px" }}>
+        <h1
+          style={{
+            color: VIPPS_COLORS.primary,
+            marginBottom: "10px",
+            fontSize: "clamp(1.4rem, 3vw, 2rem)",
+          }}
+        >
           {status}
         </h1>
+        <p style={{ color: VIPPS_COLORS.dark, margin: "0 0 20px" }}>
+          {details}
+        </p>
         {payment && (
           <div style={{ color: "#666", fontSize: "14px" }}>
             <p>
@@ -157,7 +188,24 @@ export default function VippsReturnPage() {
             </p>
           </div>
         )}
-        <p style={{ color: "#999", marginTop: "20px" }}>Returning to app...</p>
+
+        {nextAction && (
+          <a
+            href={nextAction.href}
+            style={{
+              display: "inline-block",
+              marginTop: "18px",
+              backgroundColor: VIPPS_COLORS.primary,
+              color: "white",
+              textDecoration: "none",
+              padding: "10px 16px",
+              borderRadius: "999px",
+              fontWeight: 600,
+            }}
+          >
+            {nextAction.label}
+          </a>
+        )}
       </div>
     </main>
   );

@@ -5,7 +5,7 @@ import { loadVippsButtonScript, propsToAttributes } from "./VippsButton";
 export function VippsButton(props: VippsButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isLoadedRef = useRef(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
 
   useEffect(() => {
     const loadScript = async () => {
@@ -26,29 +26,34 @@ export function VippsButton(props: VippsButtonProps) {
   }, []);
 
   const handleClick = async () => {
-    if (isLoading) {
-      return;
-    }
-
     try {
-      setIsLoading(true);
       await props.onClick();
     } catch (error) {
       console.error("Vipps button click handler error:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const attributes = propsToAttributes(isLoading);
+  const attributes = propsToAttributes();
 
   return (
     <div ref={containerRef} style={{ display: "block", width: "100%" }}>
       {createElement("vipps-mobilepay-button", {
         ...attributes,
-        style: { display: "block", width: "100%" },
+        style: {
+          display: "block",
+          width: "100%",
+          cursor: "pointer",
+          transition: "transform 120ms ease, filter 120ms ease",
+          transform: isPressed ? "scale(0.985)" : "scale(1)",
+          filter: isPressed ? "brightness(0.96)" : "none",
+        },
         onClick: handleClick,
-        disabled: isLoading,
+        onPointerDown: () => setIsPressed(true),
+        onPointerUp: () => setIsPressed(false),
+        onPointerCancel: () => setIsPressed(false),
+        onPointerLeave: () => setIsPressed(false),
+        onKeyDown: () => setIsPressed(true),
+        onKeyUp: () => setIsPressed(false),
       })}
     </div>
   );

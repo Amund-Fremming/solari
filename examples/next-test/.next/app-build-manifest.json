@@ -2,31 +2,31 @@
   "pages": {
     "/_not-found/page": [
       "static/chunks/webpack-5adebf9f62dc3001.js",
-      "static/chunks/c7eb7a79-3585d7c98e706523.js",
-      "static/chunks/913-5631d607191ec310.js",
-      "static/chunks/main-app-2401efa6351f5017.js",
-      "static/chunks/app/_not-found/page-338d1431f41f41dc.js"
+      "static/chunks/4bd1b696-1a59d50c7c1f5f02.js",
+      "static/chunks/517-4743ed8ec416af55.js",
+      "static/chunks/main-app-c1d9e138aca583c4.js",
+      "static/chunks/app/_not-found/page-060bcc81b0094999.js"
     ],
     "/layout": [
       "static/chunks/webpack-5adebf9f62dc3001.js",
-      "static/chunks/c7eb7a79-3585d7c98e706523.js",
-      "static/chunks/913-5631d607191ec310.js",
-      "static/chunks/main-app-2401efa6351f5017.js",
-      "static/chunks/app/layout-5a76d686aaabb680.js"
+      "static/chunks/4bd1b696-1a59d50c7c1f5f02.js",
+      "static/chunks/517-4743ed8ec416af55.js",
+      "static/chunks/main-app-c1d9e138aca583c4.js",
+      "static/chunks/app/layout-555d8d2754fd6a9c.js"
     ],
     "/page": [
       "static/chunks/webpack-5adebf9f62dc3001.js",
-      "static/chunks/c7eb7a79-3585d7c98e706523.js",
-      "static/chunks/913-5631d607191ec310.js",
-      "static/chunks/main-app-2401efa6351f5017.js",
-      "static/chunks/app/page-20bce65f7dfebcb5.js"
+      "static/chunks/4bd1b696-1a59d50c7c1f5f02.js",
+      "static/chunks/517-4743ed8ec416af55.js",
+      "static/chunks/main-app-c1d9e138aca583c4.js",
+      "static/chunks/app/page-7fa065cda4f477b0.js"
     ],
     "/vipps-return/page": [
       "static/chunks/webpack-5adebf9f62dc3001.js",
-      "static/chunks/c7eb7a79-3585d7c98e706523.js",
-      "static/chunks/913-5631d607191ec310.js",
-      "static/chunks/main-app-2401efa6351f5017.js",
-      "static/chunks/app/vipps-return/page-3c3122253297fde8.js"
+      "static/chunks/4bd1b696-1a59d50c7c1f5f02.js",
+      "static/chunks/517-4743ed8ec416af55.js",
+      "static/chunks/main-app-c1d9e138aca583c4.js",
+      "static/chunks/app/vipps-return/page-d3992089d3383359.js"
     ]
   }
 }

@@ -15,7 +15,7 @@ export const DEFAULT_VIPPS_BUTTON_PROPS = {
   branded: true,
 };
 
-export function propsToAttributes(loading: boolean): Record<string, string> {
+export function propsToAttributes(): Record<string, string> {
   return {
     type: "button",
     brand: DEFAULT_VIPPS_BUTTON_PROPS.brand,
@@ -25,7 +25,6 @@ export function propsToAttributes(loading: boolean): Record<string, string> {
     verb: DEFAULT_VIPPS_BUTTON_PROPS.verb,
     stretched: String(DEFAULT_VIPPS_BUTTON_PROPS.stretched),
     branded: String(DEFAULT_VIPPS_BUTTON_PROPS.branded),
-    loading: String(loading),
   };
 }
 
