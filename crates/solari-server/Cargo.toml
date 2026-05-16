@@ -6,8 +6,15 @@ license.workspace = true
 repository.workspace = true
 description = "Client-side helpers for Solari integrations"
 
+[features]
+default = []
+api = ["dep:axum", "dep:tokio", "dep:tracing"]
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 solari-core = { path = "../solari-core", version = "0.1.0" }
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tracing = { version = "0.1", optional = true }

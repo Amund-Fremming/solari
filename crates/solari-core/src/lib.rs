@@ -1,8 +1,13 @@
-pub mod core;
-pub mod error;
-pub mod modules;
+mod core;
+mod error;
+mod modules;
 pub mod payment_module;
-pub mod traits;
+mod traits;
 
-// Re-exporting key components for external use
-//pub use traits::{PaymentError, PaymentProvider, PaymentRequest, PaymentResult};
+pub use core::{PaymentProviderResponse, PaymentStatus, PaymentType};
+pub use error::PaymentProviderError;
+pub use modules::apple_pay::models::ApplePayConfig;
+pub use payment_module::{
+    PayRequest, SolariPaymentService, VippsConfig, VippsCreatePaymentResult,
+    VippsPaymentStatusResult, VippsTokenResponse,
+};

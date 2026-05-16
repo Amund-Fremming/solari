@@ -1,4 +1,5 @@
 export type { VippsButtonProps } from "./components/VippsButton";
+export * from "./types";
 
 export { VippsButton as VippsButtonNative } from "./components/VippsButton.native";
 
@@ -7,9 +8,5 @@ export {
   createNativeClientNoRedirect,
   create_native_client,
   create_native_client_no_redirect,
-  type CreateNativeClientOptions,
-  type VippsPaymentClient,
-  type PaymentSnapshot,
-  type VippsPaymentFlowResult,
   VIPPS_COLORS,
 } from "./services/solariPaymentService";

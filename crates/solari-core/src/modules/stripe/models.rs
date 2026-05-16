@@ -1,5 +1,5 @@
 use crate::{
-    core::{PaymentProviderResponse, PaymentStatus},
+    core::{PaymentProviderResponse, PaymentStatus, PaymentType},
     error::PaymentProviderError,
     traits::PaymentProvider,
 };
@@ -54,8 +54,12 @@ impl PaymentProvider for StripeProvider {
         info!("💵 Stripe payment completed: {amount} paid");
 
         Ok(PaymentProviderResponse {
+            provider: PaymentType::Stripe,
             status: PaymentStatus::Completed,
             paid: amount,
+            reference: None,
+            redirect_url: None,
+            return_url: None,
         })
     }
 }

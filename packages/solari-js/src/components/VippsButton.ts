@@ -5,6 +5,8 @@ export interface VippsButtonProps {
 export const VIPPS_BUTTON_SCRIPT_URL =
   "https://checkout.vipps.no/checkout-button/v1/vipps-checkout-button.js";
 
+export const VIPPS_BUTTON_SVG_PATH = "./pay-with-vipps.svg";
+
 export const DEFAULT_VIPPS_BUTTON_PROPS = {
   brand: "vipps",
   variant: "primary",
@@ -61,4 +63,8 @@ export function loadVippsButtonScript(): Promise<void> {
 
     document.head.appendChild(script);
   });
+}
+
+export function getVippsButtonSvgUrl(): string {
+  return new URL(VIPPS_BUTTON_SVG_PATH, import.meta.url).toString();
 }

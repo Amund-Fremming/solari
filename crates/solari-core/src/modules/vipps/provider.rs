@@ -4,14 +4,14 @@ use std::{
 };
 
 use async_trait::async_trait;
-use tracing::{error, info};
+use tracing::{debug, error};
 
 use crate::{
-    core::{PaymentProviderResponse, PaymentStatus},
+    core::{PaymentProviderResponse, PaymentStatus, PaymentType},
     error::PaymentProviderError,
     modules::vipps::models::{
         CachedToken, VippsAccessTokenResponse, VippsConfig, VippsCreatePaymentRequest,
-        VippsCreatePaymentResponse,
+        VippsCreatePaymentResponse, VippsGetPaymentResponse,
     },
     traits::PaymentProvider,
 };
@@ -158,9 +158,75 @@ impl VippsProvider {
 
         let payload: VippsCreatePaymentResponse = response.json().await?;
 
-        info!("💵 Vipps payment created: {amount} kr");
+        debug!("💵 Vipps payment created: {amount} kr");
 
         Ok(payload)
+    }
+
+    pub async fn fetch_payment_status(
+        &self,
+        reference: &str,
+    ) -> Result<(Option<String>, String, PaymentStatus), PaymentProviderError> {
+        if reference.trim().is_empty() {
+            return Err(PaymentProviderError::RequestFailed(
+                "vipps payment reference cannot be empty".to_string(),
+            ));
+        }
+
+        let token = self.get_valid_token().await?;
+        let url = format!(
+            "{}/epayment/v1/payments/{reference}",
+            self.config.base_url.trim_end_matches('/')
+        );
+
+        let response = self
+            .client
+            .get(url)
+            .header("Authorization", format!("Bearer {}", token.token))
+            .header("Accept", "application/json")
+            .header(
+                "Merchant-Serial-Number",
+                &self.config.merchant_serial_number,
+            )
+            .header("Ocp-Apim-Subscription-Key", &self.config.subscription_key)
+            .send()
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or("No body".to_string());
+            return Err(PaymentProviderError::RequestFailed(format!(
+                "vipps get payment status failed ({status}): {body}"
+            )));
+        }
+
+        let payload: VippsGetPaymentResponse = response.json().await?;
+        let raw_status = payload
+            .effective_status()
+            .map(str::to_string)
+            .ok_or_else(|| {
+                PaymentProviderError::RequestFailed(
+                    "vipps payment status response did not include a status/state".to_string(),
+                )
+            })?;
+
+        Ok((
+            payload.reference,
+            raw_status.clone(),
+            map_vipps_payment_status(&raw_status),
+        ))
+    }
+}
+
+fn map_vipps_payment_status(raw_status: &str) -> PaymentStatus {
+    match raw_status.trim().to_ascii_uppercase().as_str() {
+        "CREATED" | "INITIATED" | "OPEN" | "PENDING" | "AUTHORIZED" | "RESERVED" => {
+            PaymentStatus::Pending
+        }
+        "CAPTURED" | "COMPLETED" | "PAID" => PaymentStatus::Completed,
+        "CANCELLED" | "CANCELED" => PaymentStatus::Cancelled,
+        "FAILED" | "REJECTED" | "ABORTED" | "TERMINATED" | "EXPIRED" => PaymentStatus::Failed,
+        _ => PaymentStatus::Pending,
     }
 }
 
@@ -170,8 +236,12 @@ impl PaymentProvider for VippsProvider {
         self.create_payment(amount, None).await?;
 
         Ok(PaymentProviderResponse {
+            provider: PaymentType::Vipps,
             status: PaymentStatus::Pending,
             paid: amount,
+            reference: None,
+            redirect_url: None,
+            return_url: None,
         })
     }
 }

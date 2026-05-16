@@ -1,9 +1,3 @@
-/**
- * Native button component for Vipps (React Native/Expo)
- * Since the Vipps checkout button library is web-based,
- * this component provides a native button that integrates with the payment service
- */
-
 import { createElement } from "react";
 import { Image, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { SvgUri } from "react-native-svg";

@@ -1208,10 +1208,13 @@ dependencies = [
 name = "solari-client"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "serde",
  "serde_json",
  "solari-core",
  "thiserror 1.0.69",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

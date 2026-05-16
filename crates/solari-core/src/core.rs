@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaymentStatus {
     Pending,
     Completed,
@@ -10,8 +10,12 @@ pub enum PaymentStatus {
 
 #[derive(Debug)]
 pub struct PaymentProviderResponse {
+    pub provider: PaymentType,
     pub status: PaymentStatus,
     pub paid: u32,
+    pub reference: Option<String>,
+    pub redirect_url: Option<String>,
+    pub return_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]

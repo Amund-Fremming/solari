@@ -1,43 +1,23 @@
-# Apple Pay Setup: What To Do
+# Apple Pay Setup: What You Need To Do
 
-## 1. Where to go
+This is the minimum checklist to make Apple Pay work in Solari.
 
-Use these official pages:
+## 1. Create Apple Pay assets in Apple Developer
 
-1. Apple Developer Account: https://developer.apple.com/account/
-2. Apple Pay on the web overview: https://developer.apple.com/documentation/apple_pay_on_the_web
-3. Merchant IDs and certificates: https://developer.apple.com/help/account/capabilities/configure-apple-pay/
-4. Stripe Apple Pay guide (if using Stripe as processor): https://docs.stripe.com/apple-pay
+1. Sign in: https://developer.apple.com/account/
+2. Create a Merchant ID.
+3. Create a Payment Processing Certificate for that Merchant ID.
+4. Create a Merchant Identity Certificate for merchant validation.
+5. Verify your web domain for Apple Pay.
 
-## 2. What to create in Apple
+References:
 
-For Apple Pay on the web, create and configure:
+1. https://developer.apple.com/documentation/apple_pay_on_the_web
+2. https://developer.apple.com/help/account/capabilities/configure-apple-pay/
 
-1. Merchant ID
-2. Payment Processing Certificate
-3. Merchant Identity Certificate (for merchant validation)
-4. Verified merchant domain
+## 2. Add these values to .env
 
-If using Stripe, complete Stripe Apple Pay setup too.
-
-## 3. Values you must store in ApplePayConfig
-
-Store these values:
-
-1. merchant_id
-2. merchant_display_name
-3. initiative
-4. initiative_context
-5. merchant_validation_url
-6. payment_processing_cert_pem
-7. payment_processing_key_pem
-
-Notes:
-
-1. initiative is usually web.
-2. initiative_context is usually your verified domain.
-
-## 4. Suggested env vars
+Use these keys in your environment file:
 
 1. APPLE_PAY_MERCHANT_ID
 2. APPLE_PAY_MERCHANT_DISPLAY_NAME
@@ -47,10 +27,29 @@ Notes:
 6. APPLE_PAY_PAYMENT_PROCESSING_CERT_PEM
 7. APPLE_PAY_PAYMENT_PROCESSING_KEY_PEM
 
-## 5. Payment flow
+Recommended defaults:
 
-1. Frontend checks Apple Pay availability.
-2. Backend performs merchant validation.
-3. Frontend returns payment token.
-4. Backend decrypts/processes token directly or via provider (for example Stripe).
-5. Backend finalizes payment and updates order state.
+1. APPLE_PAY_INITIATIVE=web
+2. APPLE_PAY_INITIATIVE_CONTEXT=your verified domain, for example checkout.example.com
+
+## 3. Map env values into ApplePayConfig
+
+Solari expects this mapping:
+
+1. merchant_id <- APPLE_PAY_MERCHANT_ID
+2. merchant_display_name <- APPLE_PAY_MERCHANT_DISPLAY_NAME
+3. initiative <- APPLE_PAY_INITIATIVE
+4. initiative_context <- APPLE_PAY_INITIATIVE_CONTEXT
+5. merchant_validation_url <- APPLE_PAY_MERCHANT_VALIDATION_URL
+6. payment_processing_cert_pem <- APPLE_PAY_PAYMENT_PROCESSING_CERT_PEM
+7. payment_processing_key_pem <- APPLE_PAY_PAYMENT_PROCESSING_KEY_PEM
+
+## 4. Wire backend setup
+
+1. Build ApplePayConfig from env values.
+2. Call payment_module.apple_pay(config) at startup.
+3. Use PayRequest::ApplePay in your payment endpoint.
+
+## 5. Important note for current Solari state
+
+The Apple Pay provider in Solari is now structured like Vipps and validates required config, but it is still a backend scaffold. You still need to add your processor-specific token handling flow (Stripe/direct processor/etc.) and merchant session handling endpoint before production payments will capture funds.

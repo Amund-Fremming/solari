@@ -1,14 +1,16 @@
 # axum-test
 
-Axum test backend for Solari.
+Super-slim Axum test backend for Solari.
 
 ## Endpoints
 
-- `POST /pay`: attempts a fixed `67 NOK` Vipps payment and stores the latest state in memory.
-- `GET /vipps-return`: return bridge used by Vipps callbacks. It can deep-link to Expo (`app_return_url=solari-expo-test://...`) or show a web completion page when no return target is provided.
-- `GET /status`: returns the latest in-memory payment state.
-- `POST /wipe`: resets the in-memory payment state.
-- `POST /webhook/vipps`: accepts Vipps webhook JSON and updates the in-memory payment state.
+- `POST /pay`: creates a payment through `SolariPaymentService::pay` (generic pay API).
+- `GET /status`: fetches live status from Vipps using the last payment reference.
+- `POST /wipe`: clears local test state (last payment reference + cached snapshot).
+- `POST /solari/vipps/pay`: your Solari API route (mounted from `solari-client`).
+- `GET /solari/vipps/token`: your Solari API route.
+- `POST /solari/vipps/token/fetch`: your Solari API route.
+- `POST /solari/vipps/payments`: your Solari API route.
 
 ## Example flow
 
@@ -18,30 +20,32 @@ Start the server:
 cargo run -p axum-test
 ```
 
-Trigger the fixed 67 NOK Vipps payment:
+Trigger payment (defaults to `67 NOK` if amount is omitted):
 
 ```bash
-curl -X POST http://127.0.0.1:3001/pay
+curl -X POST http://127.0.0.1:3001/pay \
+	-H 'content-type: application/json' \
+	-d '{"amount":67}'
 ```
 
-Check the in-memory payment state:
+Fetch latest status using your API-backed status lookup:
 
 ```bash
 curl http://127.0.0.1:3001/status
 ```
 
-Simulate a Vipps webhook callback locally:
-
-```bash
-curl -X POST http://127.0.0.1:3001/webhook/vipps \
-	-H 'content-type: application/json' \
-	-d '{"eventType":"PAYMENT.AUTHORIZED"}'
-```
-
-Reset the in-memory payment state:
+Reset all local test state:
 
 ```bash
 curl -X POST http://127.0.0.1:3001/wipe
+```
+
+Call your native Solari API directly:
+
+```bash
+curl -X POST http://127.0.0.1:3001/solari/vipps/pay \
+	-H 'content-type: application/json' \
+	-d '{"amount":67}'
 ```
 
 ## Run
@@ -55,7 +59,6 @@ cargo run -p axum-test
 ```
 
 If `NGROK_ENABLED=true`, the app will spawn `ngrok http <AXUM_PORT>` automatically on startup.
-If `NGROK_DOMAIN` is set, startup logs also print the exact public URLs for `/pay`, `/status`, `/wipe`, and `/webhook/vipps`.
 
 ## Environment variables
 
@@ -84,7 +87,7 @@ NGROK_AUTHTOKEN=...
 Then configure Vipps to call:
 
 ```text
-https://my-solari-dev.ngrok-free.app/webhook/vipps
+https://my-solari-dev.ngrok-free.app/solari/vipps/payments
 ```
 
 ## Mobile testing notes

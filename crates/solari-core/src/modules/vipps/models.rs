@@ -105,7 +105,42 @@ pub struct VippsCreatePaymentResponse {
     pub redirect_url: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VippsGetPaymentResponse {
+    pub reference: Option<String>,
+
+    #[serde(default)]
+    pub state: Option<String>,
+
+    #[serde(default)]
+    pub status: Option<String>,
+
+    #[serde(default)]
+    pub aggregate: Option<VippsPaymentAggregate>,
+}
+
+impl VippsGetPaymentResponse {
+    pub fn effective_status(&self) -> Option<&str> {
+        self.state
+            .as_deref()
+            .or(self.status.as_deref())
+            .or_else(|| self.aggregate.as_ref().and_then(|a| a.state.as_deref()))
+            .or_else(|| self.aggregate.as_ref().and_then(|a| a.status.as_deref()))
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VippsPaymentAggregate {
+    #[serde(default)]
+    pub state: Option<String>,
+
+    #[serde(default)]
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VippsAmount {
     pub currency: String,
     pub value: u32,
