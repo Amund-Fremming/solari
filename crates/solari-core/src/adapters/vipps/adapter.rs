@@ -7,12 +7,12 @@ use async_trait::async_trait;
 use tracing::{debug, error};
 
 use crate::{
-    core::{PaymentProviderResponse, PaymentStatus, PaymentType},
-    error::PaymentProviderError,
-    modules::vipps::models::{
+    adapters::vipps::models::{
         CachedToken, VippsAccessTokenResponse, VippsConfig, VippsCreatePaymentRequest,
         VippsCreatePaymentResponse, VippsGetPaymentResponse,
     },
+    core::{PaymentProviderResponse, PaymentStatus, PaymentType},
+    error::PaymentProviderError,
     traits::PaymentProvider,
 };
 

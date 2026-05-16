@@ -16,9 +16,11 @@ axum:
 axum-ngrok:
   cd examples/axum-test && NGROK_ENABLED=true cargo run
 
-# Run the Vipps access token example (reads .env)
 vipps-examples:
   cargo run -p solari-core --example vipps_scenarios
+
+vipps-examples:
+  cargo run -p solari-core --example stripe_scenarios
 
 # Local CI checks for Rust workspace quality gates
 local-ci:

@@ -1,7 +1,7 @@
 use std::{env, sync::Arc};
 
-use solari_core::{ApplePayConfig, SolariPaymentService, VippsConfig};
 use solari_client::app_router_with_vipps;
+use solari_core::{SolariPaymentService, VippsConfig};
 use tokio::sync::RwLock;
 
 mod handlers;
@@ -9,7 +9,7 @@ mod models;
 mod ngrok;
 
 use handlers::create_router;
-use models::{AppState, PaymentState, PaymentSnapshot};
+use models::{AppState, PaymentSnapshot, PaymentState};
 use ngrok::start_ngrok_tunnel;
 
 const WORKSPACE_ENV_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../.env");
@@ -24,10 +24,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut payment_module = SolariPaymentService::new()?;
     payment_module.vipps(vipps_config_from_env()?);
-
-    if let Some(apple_pay_config) = apple_pay_config_from_env_optional()? {
-        payment_module.apple_pay(apple_pay_config);
-    }
 
     let state = AppState {
         payment_module: Arc::new(payment_module),
@@ -88,31 +84,4 @@ fn vipps_config_from_env() -> Result<VippsConfig, Box<dyn std::error::Error>> {
         required_env("VIPPS_SUBSCRIPTION_KEY")?,
         required_env("VIPPS_MSN")?,
     ))
-}
-
-fn apple_pay_config_from_env_optional() -> Result<Option<ApplePayConfig>, Box<dyn std::error::Error>>
-{
-    let merchant_id = match read_env_string("APPLE_PAY_MERCHANT_ID") {
-        Some(value) => value,
-        None => return Ok(None),
-    };
-
-    let required_apple_env = |key: &str| -> Result<String, Box<dyn std::error::Error>> {
-        required_env(key).map_err(|_| -> Box<dyn std::error::Error> {
-            format!(
-                "missing required Apple Pay env var because APPLE_PAY_MERCHANT_ID is set: {key}"
-            )
-            .into()
-        })
-    };
-
-    Ok(Some(ApplePayConfig::new(
-        merchant_id,
-        required_apple_env("APPLE_PAY_MERCHANT_DISPLAY_NAME")?,
-        required_apple_env("APPLE_PAY_INITIATIVE")?,
-        required_apple_env("APPLE_PAY_INITIATIVE_CONTEXT")?,
-        required_apple_env("APPLE_PAY_MERCHANT_VALIDATION_URL")?,
-        required_apple_env("APPLE_PAY_PAYMENT_PROCESSING_CERT_PEM")?,
-        required_apple_env("APPLE_PAY_PAYMENT_PROCESSING_KEY_PEM")?,
-    )))
 }

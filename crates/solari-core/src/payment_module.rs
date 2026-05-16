@@ -1,21 +1,19 @@
 use crate::{
+    adapters::{
+        stripe::models::{StripeConfig, StripeProvider},
+        vipps::{adapter::VippsProvider, models::VippsConfig as InternalVippsConfig},
+    },
     core::{PaymentProviderResponse, PaymentType},
     error::PaymentProviderError,
-    modules::{
-        apple_pay::{models::ApplePayConfig, provider::ApplePayProvider},
-        stripe::models::{StripeConfig, StripeProvider},
-        vipps::{models::VippsConfig as InternalVippsConfig, provider::VippsProvider},
-    },
     traits::PaymentProvider,
 };
 use std::time::Duration;
 
-pub use crate::modules::vipps::models::VippsConfig;
+pub use crate::adapters::vipps::models::VippsConfig;
 
 pub struct SolariPaymentService {
     client: reqwest::Client,
     vipps_provider: Option<VippsProvider>,
-    apple_pay_provider: Option<ApplePayProvider>,
     stripe_provider: Option<StripeProvider>,
 }
 
@@ -45,11 +43,6 @@ pub struct VippsPayRequest {
 }
 
 #[derive(Debug, Clone)]
-pub struct ApplePayRequest {
-    pub amount: u32,
-}
-
-#[derive(Debug, Clone)]
 pub struct StripePayRequest {
     pub amount: u32,
 }
@@ -57,7 +50,6 @@ pub struct StripePayRequest {
 #[derive(Debug, Clone)]
 pub enum PayRequest {
     Vipps(VippsPayRequest),
-    ApplePay(ApplePayRequest),
     Stripe(StripePayRequest),
 }
 
@@ -74,7 +66,6 @@ impl SolariPaymentService {
         Ok(SolariPaymentService {
             client,
             vipps_provider: None,
-            apple_pay_provider: None,
             stripe_provider: None,
         })
     }
@@ -84,11 +75,7 @@ impl SolariPaymentService {
         self
     }
 
-    pub fn apple_pay(&mut self, config: ApplePayConfig) -> &mut Self {
-        self.apple_pay_provider = Some(ApplePayProvider::new(self.client.clone(), config));
-        self
-    }
-
+    /// Stripe is used for apple pay and visa payments.
     pub fn stripe(&mut self, config: StripeConfig) -> &mut Self {
         self.stripe_provider = Some(StripeProvider::new(self.client.clone(), config));
         self
@@ -117,14 +104,6 @@ impl SolariPaymentService {
                     redirect_url: response.redirect_url,
                     return_url: request.return_url,
                 })
-            }
-            PayRequest::ApplePay(request) => {
-                let provider = self
-                    .apple_pay_provider
-                    .as_ref()
-                    .ok_or(PaymentProviderError::NotConfigured(PaymentType::ApplePay))?;
-
-                provider.pay(request.amount).await
             }
             PayRequest::Stripe(request) => {
                 let provider = self
