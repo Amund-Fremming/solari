@@ -5,7 +5,7 @@ use crate::{
 };
 use async_trait::async_trait;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{error, info};
 
 #[derive(Debug)]
 pub struct StripeConfig {
@@ -93,13 +93,30 @@ impl StripeProvider {
         &self,
         request: StripeCreatePaymentIntentRequest,
     ) -> Result<StripePaymentIntentResult, PaymentProviderError> {
+        let flow_label = match request.flow {
+            StripePaymentFlow::Card => "card",
+            StripePaymentFlow::ApplePay => "apple_pay",
+        };
+
         if request.amount == 0 {
+            error!(
+                "Stripe create_payment_intent rejected invalid amount: flow={} amount={}",
+                flow_label,
+                request.amount
+            );
             return Err(PaymentProviderError::InvalidAmount(request.amount));
         }
 
         let endpoint = format!(
             "{}/v1/payment_intents",
             self.config.api_base_url.trim_end_matches('/')
+        );
+
+        info!(
+            "Stripe create_payment_intent started: flow={} amount={} currency={}",
+            flow_label,
+            request.amount,
+            request.currency
         );
 
         let mut form_fields = vec![
@@ -121,10 +138,8 @@ impl StripeProvider {
                 form_fields.push(("payment_method_types[]".to_string(), "card".to_string()));
             }
             StripePaymentFlow::ApplePay => {
-                form_fields.push((
-                    "automatic_payment_methods[enabled]".to_string(),
-                    "true".to_string(),
-                ));
+                form_fields.push(("confirmation_method".to_string(), "automatic".to_string()));
+                form_fields.push(("payment_method_types[]".to_string(), "card".to_string()));
             }
         }
 
@@ -163,6 +178,13 @@ impl StripeProvider {
                     }
                 });
 
+            error!(
+                "Stripe create_payment_intent failed: flow={} status={} message={}",
+                flow_label,
+                status,
+                message
+            );
+
             return Err(PaymentProviderError::RequestFailed(message));
         }
 
@@ -172,6 +194,14 @@ impl StripeProvider {
                 "stripe response missing client_secret for payment intent".to_string(),
             )
         })?;
+
+        info!(
+            "Stripe create_payment_intent succeeded: flow={} intent_id={} amount={} status={}",
+            flow_label,
+            payload.id,
+            payload.amount,
+            payload.status
+        );
 
         Ok(StripePaymentIntentResult {
             id: payload.id,

@@ -1,4 +1,5 @@
 import { StatusBar } from "expo-status-bar";
+import Constants from "expo-constants";
 import { useEffect, useState } from "react";
 import {
   Linking,
@@ -8,7 +9,12 @@ import {
   Text,
   View,
 } from "react-native";
-import { StripeProvider, useStripe } from "@stripe/stripe-react-native";
+import {
+  StripeProvider,
+  useStripe,
+  PlatformPay,
+  PlatformPayButton,
+} from "@stripe/stripe-react-native";
 
 import {
   createNativeClientNoRedirect,
@@ -39,6 +45,10 @@ const FALLBACK_STATUS: PaymentSnapshot = {
 
 const STRIPE_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+const STRIPE_MERCHANT_IDENTIFIER =
+  process.env.EXPO_PUBLIC_STRIPE_MERCHANT_IDENTIFIER ??
+  "merchant.com.solari.test";
+const IS_EXPO_GO = Constants.appOwnership === "expo";
 
 function AppScreen() {
   const { initPaymentSheet, presentPaymentSheet, isPlatformPaySupported } =
@@ -232,7 +242,9 @@ function AppScreen() {
 
     if (flow === "apple_pay" && applePaySupported === false) {
       setStripeFeedback(
-        "Apple Pay is not available on this device/build. Use a physical iPhone with Wallet cards and a dev build, not Expo Go.",
+        IS_EXPO_GO
+          ? "Apple Pay is unavailable in Expo Go. Use a native iOS development build with your merchant identifier."
+          : "Apple Pay is not available on this device/build. Use a physical iPhone with Wallet cards and a native iOS build.",
       );
       return;
     }
@@ -257,7 +269,7 @@ function AppScreen() {
       const initResult = await initPaymentSheet({
         merchantDisplayName: "Solari Test",
         paymentIntentClientSecret: intent.client_secret,
-        allowsDelayedPaymentMethods: true,
+        allowsDelayedPaymentMethods: false,
         returnURL: "solari-expo-test://vipps-return",
         applePay:
           flow === "apple_pay"
@@ -356,27 +368,32 @@ function AppScreen() {
             >
               <Text style={styles.stripeButtonLabel}>Pay card (2500 NOK)</Text>
             </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={stripeBusy || applePaySupported === false}
-              onPress={() => void handleStripePress("apple_pay")}
-              style={({ pressed }) => [
-                styles.appleButton,
-                pressed && !stripeBusy ? styles.secondaryButtonPressed : null,
+            <View
+              style={[
+                styles.applePayButtonWrap,
                 stripeBusy || applePaySupported === false
                   ? styles.buttonDisabled
                   : null,
               ]}
             >
-              <Text style={styles.stripeButtonLabel}>Pay Apple Pay intent</Text>
-            </Pressable>
+              <PlatformPayButton
+                onPress={() => void handleStripePress("apple_pay")}
+                disabled={stripeBusy || applePaySupported === false}
+                type={PlatformPay.ButtonType.Pay}
+                appearance={PlatformPay.ButtonStyle.Black}
+                borderRadius={24}
+                style={styles.applePayButton}
+              />
+            </View>
           </View>
           <Text style={styles.panelHint}>
             {applePaySupported === null
               ? "Checking Apple Pay availability..."
               : applePaySupported
                 ? "Apple Pay is available on this device."
-                : "Apple Pay unavailable here. PaymentSheet will fall back to Link/card methods."}
+                : IS_EXPO_GO
+                  ? "Apple Pay unavailable in Expo Go. PaymentSheet falls back to card only."
+                  : "Apple Pay unavailable on this iOS build/device. PaymentSheet falls back to card only."}
           </Text>
           <Text style={styles.feedback}>{stripeFeedback}</Text>
         </View>
@@ -456,7 +473,7 @@ export default function App() {
   return (
     <StripeProvider
       publishableKey={STRIPE_PUBLISHABLE_KEY}
-      merchantIdentifier="merchant.com.solari.test"
+      merchantIdentifier={STRIPE_MERCHANT_IDENTIFIER}
       urlScheme="solari-expo-test"
     >
       <AppScreen />
@@ -586,13 +603,14 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 16,
   },
-  appleButton: {
-    alignItems: "center",
-    backgroundColor: "#1f1f1f",
-    borderRadius: 999,
-    justifyContent: "center",
+  applePayButtonWrap: {
+    borderRadius: 24,
+    overflow: "hidden",
     minHeight: 48,
-    paddingHorizontal: 16,
+  },
+  applePayButton: {
+    width: "100%",
+    height: 48,
   },
   stripeButtonLabel: {
     color: "#ffffff",

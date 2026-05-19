@@ -3,6 +3,7 @@ use std::{env, sync::Arc};
 use solari::{app_router_with_vipps, app_router_with_vipps_and_stripe};
 use solari::{SolariPaymentService, StripeConfig, VippsConfig};
 use tokio::sync::RwLock;
+use tracing_subscriber::{fmt, EnvFilter};
 
 mod handlers;
 mod models;
@@ -16,6 +17,14 @@ const WORKSPACE_ENV_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../.en
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .with_target(false)
+        .compact()
+        .init();
+
     dotenvy::from_path(WORKSPACE_ENV_PATH).ok();
 
     let listen_port = read_env_u16("AXUM_PORT", 3001)?;

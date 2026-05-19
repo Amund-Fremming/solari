@@ -10,6 +10,7 @@ use crate::{
     models::{PaymentProviderResponse, PaymentType},
 };
 use std::time::Duration;
+use tracing::{error, info};
 
 pub use crate::adapters::stripe::models::StripeConfig;
 pub use crate::adapters::vipps::models::VippsConfig;
@@ -206,19 +207,47 @@ impl SolariPaymentService {
         request: StripePayRequest,
         flow: StripePaymentFlow,
     ) -> Result<StripePaymentIntentResponse, PaymentProviderError> {
+        let flow_label = match flow {
+            StripePaymentFlow::Card => "card",
+            StripePaymentFlow::ApplePay => "apple_pay",
+        };
+
         let provider = self
             .stripe_provider
             .as_ref()
             .ok_or(PaymentProviderError::NotConfigured(PaymentType::Stripe))?;
 
-        let intent = provider
+        info!(
+            "Solari service creating Stripe intent: flow={} amount={} currency={}",
+            flow_label,
+            request.amount,
+            request.currency.as_deref().unwrap_or("nok")
+        );
+
+        let intent_result = provider
             .create_payment_intent(StripeCreatePaymentIntentRequest {
                 amount: request.amount,
                 currency: request.currency.unwrap_or_else(|| "nok".to_string()),
                 description: request.description,
                 flow,
             })
-            .await?;
+            .await;
+
+        let intent = match intent_result {
+            Ok(intent) => intent,
+            Err(error_value) => {
+                error!(
+                    "Solari service Stripe intent failed: flow={} amount={} error={}",
+                    flow_label, request.amount, error_value
+                );
+                return Err(error_value);
+            }
+        };
+
+        info!(
+            "Solari service Stripe intent ready: flow={} intent_id={} status={}",
+            flow_label, intent.id, intent.status
+        );
 
         Ok(map_intent_response(intent, flow))
     }

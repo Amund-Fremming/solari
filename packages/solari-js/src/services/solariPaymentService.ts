@@ -75,6 +75,58 @@ function normalizeErrorMessage(raw: unknown): string {
   return "Unexpected client error";
 }
 
+function parseJsonSafely(rawText: string): unknown | null {
+  if (!rawText) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(rawText) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function extractErrorMessage(
+  status: number,
+  method: string,
+  path: string,
+  parsedBody: unknown,
+  rawText: string,
+): string {
+  if (parsedBody && typeof parsedBody === "object") {
+    const body = parsedBody as Record<string, unknown>;
+    const nestedError = body.error;
+
+    if (typeof nestedError === "string" && nestedError.trim().length > 0) {
+      return `HTTP ${status} for ${method} ${path}: ${nestedError}`;
+    }
+
+    if (nestedError && typeof nestedError === "object") {
+      const errObj = nestedError as Record<string, unknown>;
+      const message = errObj.message;
+      const code = errObj.code;
+      if (typeof message === "string" && message.trim().length > 0) {
+        if (typeof code === "string" && code.trim().length > 0) {
+          return `HTTP ${status} for ${method} ${path}: ${message} (code: ${code})`;
+        }
+        return `HTTP ${status} for ${method} ${path}: ${message}`;
+      }
+    }
+
+    const message = body.message;
+    if (typeof message === "string" && message.trim().length > 0) {
+      return `HTTP ${status} for ${method} ${path}: ${message}`;
+    }
+  }
+
+  if (rawText.trim().length > 0) {
+    return `HTTP ${status} for ${method} ${path}: ${rawText}`;
+  }
+
+  return `HTTP ${status} for ${method} ${path}`;
+}
+
 export class SolariPaymentService {
   private readonly baseUrl: string;
   private readonly logger: SolariLogger;
@@ -111,21 +163,36 @@ export class SolariPaymentService {
       });
 
       const rawText = await response.text();
-      const parsedBody = rawText ? (JSON.parse(rawText) as TResponse) : null;
+      const parsedUnknown = parseJsonSafely(rawText);
+      const parsedBody = parsedUnknown as TResponse | null;
 
       if (!response.ok) {
+        const message = extractErrorMessage(
+          response.status,
+          method,
+          path,
+          parsedUnknown,
+          rawText,
+        );
         this.logger.error("request_failed", {
           method,
           path,
           status: response.status,
+          message,
           response: rawText || null,
         });
-        throw new Error(`HTTP ${response.status} for ${method} ${path}`);
+        throw new Error(message);
       }
 
       if (parsedBody === null) {
-        this.logger.error("empty_response", { method, path });
-        throw new Error(`Empty response for ${method} ${path}`);
+        this.logger.error("invalid_json_response", {
+          method,
+          path,
+          response: rawText || null,
+        });
+        throw new Error(
+          `Expected JSON response for ${method} ${path}, received: ${rawText || "<empty>"}`,
+        );
       }
 
       return parsedBody;
@@ -258,7 +325,15 @@ export class SolariPaymentService {
       "POST",
       "/solari/apple-pay/pay",
       payload,
-    );
+    ).catch((error) => {
+      this.logger.error("apple_pay_intent_failed", {
+        endpoint: "/solari/apple-pay/pay",
+        amount: payload.amount,
+        currency: payload.currency ?? null,
+        message: normalizeErrorMessage(error),
+      });
+      throw error;
+    });
   }
 
   // ---------- Stripe API (/solari/stripe/*) ----------
@@ -268,7 +343,15 @@ export class SolariPaymentService {
       "POST",
       "/solari/stripe/pay",
       payload,
-    );
+    ).catch((error) => {
+      this.logger.error("stripe_intent_failed", {
+        endpoint: "/solari/stripe/pay",
+        amount: payload.amount,
+        currency: payload.currency ?? null,
+        message: normalizeErrorMessage(error),
+      });
+      throw error;
+    });
   }
 }
 

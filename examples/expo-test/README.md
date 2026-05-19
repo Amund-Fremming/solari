@@ -32,10 +32,13 @@ Set these env vars before starting Expo:
 ```bash
 EXPO_PUBLIC_AXUM_BASE_URL=https://your-ngrok-domain.ngrok-free.app
 EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+EXPO_PUBLIC_STRIPE_MERCHANT_IDENTIFIER=merchant.com.yourapp
 npm start
 ```
 
 Notes:
 
-- The app config includes Stripe plugin with merchant identifier `merchant.com.solari.test`.
+- Apple Pay only works in a native iOS build (development build or production build), not in Expo Go.
+- The Stripe plugin merchant identifier is controlled by `EXPO_PUBLIC_STRIPE_MERCHANT_IDENTIFIER`.
+- If you change the merchant identifier, rebuild the iOS app so entitlements are regenerated.
 - For production Apple Pay, use your own merchant identifier and Apple Pay-capable iOS setup.
