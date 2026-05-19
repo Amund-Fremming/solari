@@ -1,0 +1,27 @@
+[package]
+name = "solari"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Unified Solari payment service and optional API router"
+
+[features]
+default = []
+api = ["dep:axum", "dep:tokio"]
+
+[dependencies]
+async-trait = "0.1"
+serde.workspace = true
+serde_json.workspace = true
+serde_urlencoded = "0.7"
+thiserror.workspace = true
+reqwest = { version = "0.13.3", features = ["json"] }
+tracing = "0.1"
+axum = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+[dev-dependencies]
+dotenvy = "0.15"
+tokio.workspace = true
+tracing-subscriber = "0.3"

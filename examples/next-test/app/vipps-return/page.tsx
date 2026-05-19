@@ -3,9 +3,7 @@
 import { useEffect } from "react";
 import { createWebClient } from "@solari/solari-js";
 
-const vippsClient = createWebClient({
-  callbackUrl: process.env.NEXT_PUBLIC_VIPPS_WEB_RETURN_URL,
-});
+const vippsClient = createWebClient();
 
 type ReturnMessage = {
   type: "solari-vipps-return";

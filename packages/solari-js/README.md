@@ -31,6 +31,30 @@ const response = await solari.vippsPay(packet);
 console.log(response.redirect_url);
 ```
 
+Stripe card payment intent:
+
+```ts
+const stripeIntent = await solari.stripePay({
+  amount: 2500,
+  currency: "nok",
+  description: "Card payment",
+});
+
+console.log(stripeIntent.payment_intent_id, stripeIntent.client_secret);
+```
+
+Apple Pay payment intent:
+
+```ts
+const applePayIntent = await solari.applePayPay({
+  amount: 2500,
+  currency: "nok",
+  description: "Apple Pay payment",
+});
+
+console.log(applePayIntent.flow, applePayIntent.client_secret);
+```
+
 ## Main class
 
 `SolariPaymentService` has grouped endpoint methods:
@@ -48,6 +72,8 @@ Examples:
 
 - `VippsPayPacket`
 - `VippsCreatePaymentPacket`
+- `StripePayPacket`
+- `StripePaymentIntentResponse`
 - `PaymentSnapshot`
 - `PaymentApiResponse`
 

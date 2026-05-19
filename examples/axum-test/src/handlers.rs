@@ -6,7 +6,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
-use solari_core::{payment_module::VippsPayRequest, PayRequest, PaymentStatus, PaymentType};
+use solari::{PayRequest, PaymentStatus, PaymentType, VippsPayRequest};
 use tower_http::cors::{Any, CorsLayer};
 
 use crate::models::{ApiResponse, AppState, PaymentSnapshot, PaymentState, VIPPS_PAY_AMOUNT_NOK};

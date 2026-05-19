@@ -7,6 +7,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "plugins": ["expo-asset"]
+    "plugins": [
+      "expo-asset",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.solari.test",
+          "enableGooglePay": false
+        }
+      ]
+    ]
   }
 }

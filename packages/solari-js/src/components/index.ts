@@ -1,6 +1,4 @@
-// Export types and utilities
-export type { VippsButtonProps } from "./VippsButton";
-
+export type { VippsButtonProps } from "./vipps/VippsButton";
 export {
   VIPPS_BUTTON_SCRIPT_URL,
   VIPPS_BUTTON_SVG_PATH,
@@ -8,7 +6,12 @@ export {
   propsToAttributes,
   loadVippsButtonScript,
   getVippsButtonSvgUrl,
-} from "./VippsButton";
+  VippsButtonWeb,
+} from "./vipps";
 
-// Web component
-export { VippsButton as VippsButtonWeb } from "./VippsButton.web";
+export type { ApplePayButtonProps } from "./apple_pay/ApplePayButton";
+export {
+  APPLE_PAY_BUTTON_BORDER_RADIUS,
+  APPLE_PAY_BUTTON_HEIGHT,
+  ApplePayButtonWeb,
+} from "./apple_pay";

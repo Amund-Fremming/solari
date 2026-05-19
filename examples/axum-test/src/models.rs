@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use serde::Serialize;
-use solari_core::SolariPaymentService;
+use solari::SolariPaymentService;
 use tokio::sync::RwLock;
 
 pub const VIPPS_PAY_AMOUNT_NOK: u32 = 67;

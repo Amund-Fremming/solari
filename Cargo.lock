@@ -105,8 +105,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "solari-client",
- "solari-core",
+ "solari",
  "tokio",
  "tower-http",
 ]
@@ -1205,27 +1204,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "solari-client"
-version = "0.1.0"
-dependencies = [
- "axum",
- "serde",
- "serde_json",
- "solari-core",
- "thiserror 1.0.69",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "solari-core"
+name = "solari"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "axum",
  "dotenvy",
  "reqwest",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "thiserror 1.0.69",
  "tokio",
  "tracing",

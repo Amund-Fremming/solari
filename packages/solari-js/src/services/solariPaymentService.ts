@@ -6,7 +6,7 @@ import type {
   PaymentSnapshot,
   SolariClientOptions,
   SolariLogger,
-  SolariResponse,
+  StripePaymentIntentResponse,
   StripePayPacket,
   VippsCreatePaymentPacket,
   VippsCreatePaymentResponse,
@@ -15,7 +15,7 @@ import type {
   VippsStartFlowOptions,
   VippsStartFlowResult,
   VippsTokenResponse,
-} from "../types.js";
+} from "../types/types.js";
 
 export const VIPPS_COLORS = {
   primary: "#ff5b24",
@@ -252,9 +252,9 @@ export class SolariPaymentService {
   // ---------- Apple Pay API (/solari/apple-pay/*) ----------
   // POST /solari/apple-pay/pay
   applePayPay(
-    payload: ApplePayPayPacket = {},
-  ): Promise<SolariResponse<AnyObject>> {
-    return this.request<SolariResponse<AnyObject>>(
+    payload: ApplePayPayPacket,
+  ): Promise<StripePaymentIntentResponse> {
+    return this.request<StripePaymentIntentResponse>(
       "POST",
       "/solari/apple-pay/pay",
       payload,
@@ -263,8 +263,8 @@ export class SolariPaymentService {
 
   // ---------- Stripe API (/solari/stripe/*) ----------
   // POST /solari/stripe/pay
-  stripePay(payload: StripePayPacket = {}): Promise<SolariResponse<AnyObject>> {
-    return this.request<SolariResponse<AnyObject>>(
+  stripePay(payload: StripePayPacket): Promise<StripePaymentIntentResponse> {
+    return this.request<StripePaymentIntentResponse>(
       "POST",
       "/solari/stripe/pay",
       payload,

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  Elements,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import {
   VippsButtonWeb,
   createWebClient,
@@ -41,9 +48,82 @@ function isVippsReturnMessage(payload: unknown): payload is VippsReturnMessage {
   );
 }
 
-const vippsClient = createWebClient({
-  callbackUrl: process.env.NEXT_PUBLIC_VIPPS_WEB_RETURN_URL,
-});
+const vippsClient = createWebClient();
+
+type StripePayPacket = {
+  amount: number;
+  currency?: string;
+  description?: string;
+};
+
+type StripePayResult = {
+  flow: string;
+  payment_intent_id: string;
+  client_secret: string;
+  publishable_key: string;
+};
+
+type StripeIntentClientCompat = {
+  applePayPay: (payload: StripePayPacket) => Promise<StripePayResult>;
+  stripePay: (payload: StripePayPacket) => Promise<StripePayResult>;
+};
+
+type StripeFlow = "card" | "apple_pay";
+
+function StripeCheckoutForm(props: {
+  onResult: (message: string) => void;
+  disabled?: boolean;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setSubmitting(true);
+    const result = await stripe.confirmPayment({
+      elements,
+      redirect: "if_required",
+    });
+
+    if (result.error) {
+      props.onResult(result.error.message || "Stripe confirmation failed.");
+      setSubmitting(false);
+      return;
+    }
+
+    const status = result.paymentIntent?.status || "unknown";
+    props.onResult(`Stripe confirm result: ${status}`);
+    setSubmitting(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement />
+      <button
+        type="submit"
+        disabled={!stripe || !elements || submitting || props.disabled}
+        style={{
+          marginTop: "12px",
+          backgroundColor: "#635bff",
+          color: "white",
+          border: "none",
+          padding: "12px 24px",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "16px",
+        }}
+      >
+        {submitting ? "Confirming..." : "Confirm Payment"}
+      </button>
+    </form>
+  );
+}
 
 export default function HomePage() {
   const [payment, setPayment] = useState<PaymentSnapshot>(FALLBACK_STATUS);
@@ -51,6 +131,21 @@ export default function HomePage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [networkError, setNetworkError] = useState<string | null>(null);
   const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+  const [stripeAmount, setStripeAmount] = useState(25);
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(
+    null,
+  );
+  const [stripePublishableKey, setStripePublishableKey] = useState<
+    string | null
+  >(null);
+  const [stripeIntentId, setStripeIntentId] = useState<string | null>(null);
+  const [stripeFlow, setStripeFlow] = useState<StripeFlow>("card");
+  const [stripeMessage, setStripeMessage] = useState<string | null>(null);
+
+  const stripePromise = useMemo(
+    () => (stripePublishableKey ? loadStripe(stripePublishableKey) : null),
+    [stripePublishableKey],
+  );
 
   const formatErrorMessage = (error: unknown): string => {
     if (error instanceof Error && error.message) {
@@ -152,6 +247,45 @@ export default function HomePage() {
       setNetworkError(null);
     } catch (error) {
       setNetworkError(formatErrorMessage(error));
+    }
+  };
+
+  const handleCreateStripeIntent = async (flow: StripeFlow) => {
+    const amount = Math.round(stripeAmount * 100);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setStripeMessage("Amount must be greater than 0.");
+      return;
+    }
+
+    setIsLoading(true);
+    setStripeMessage("Creating Stripe payment intent...");
+
+    try {
+      // Keep the example working across SDK versions with slightly different d.ts surfaces.
+      const stripeIntentClient =
+        vippsClient as unknown as StripeIntentClientCompat;
+      const payload: StripePayPacket = {
+        amount,
+        currency: "nok",
+        description: `Solari ${flow} test`,
+      };
+
+      const intent =
+        flow === "apple_pay"
+          ? await stripeIntentClient.applePayPay(payload)
+          : await stripeIntentClient.stripePay(payload);
+
+      setStripeFlow(flow);
+      setStripeClientSecret(intent.client_secret);
+      setStripePublishableKey(intent.publishable_key);
+      setStripeIntentId(intent.payment_intent_id);
+      setStripeMessage(
+        `Intent ready (${intent.flow}). Continue in Stripe checkout below.`,
+      );
+    } catch (error) {
+      setStripeMessage(formatErrorMessage(error));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -304,6 +438,94 @@ export default function HomePage() {
             />
             Auto-refresh status
           </label>
+        </section>
+
+        <section
+          style={{
+            backgroundColor: "white",
+            padding: "20px",
+            borderRadius: "8px",
+            marginBottom: "20px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h2>Stripe SDK Checkout</h2>
+          <p style={{ color: "#555", fontSize: "14px" }}>
+            Create a payment intent via Solari backend, then confirm it using
+            Stripe.js.
+          </p>
+
+          <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={stripeAmount}
+              onChange={(event) => setStripeAmount(Number(event.target.value))}
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                padding: "10px",
+                width: "120px",
+              }}
+            />
+            <button
+              onClick={() => void handleCreateStripeIntent("card")}
+              style={{
+                backgroundColor: "#635bff",
+                color: "white",
+                border: "none",
+                padding: "12px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Card Intent
+            </button>
+            <button
+              onClick={() => void handleCreateStripeIntent("apple_pay")}
+              style={{
+                backgroundColor: "#2f2f2f",
+                color: "white",
+                border: "none",
+                padding: "12px 16px",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Apple Pay Intent
+            </button>
+          </div>
+
+          {stripeIntentId && (
+            <p style={{ marginBottom: "8px", color: "#555", fontSize: "14px" }}>
+              Intent: {stripeIntentId} ({stripeFlow})
+            </p>
+          )}
+
+          {stripeMessage && (
+            <p
+              style={{ marginBottom: "12px", color: "#333", fontSize: "14px" }}
+            >
+              {stripeMessage}
+            </p>
+          )}
+
+          {!stripeClientSecret || !stripePromise ? (
+            <p style={{ color: "#777", fontSize: "14px" }}>
+              Create an intent first to load Stripe Elements.
+            </p>
+          ) : (
+            <Elements
+              stripe={stripePromise}
+              options={{ clientSecret: stripeClientSecret }}
+            >
+              <StripeCheckoutForm
+                disabled={isLoading}
+                onResult={(message) => setStripeMessage(message)}
+              />
+            </Elements>
+          )}
         </section>
 
         <section

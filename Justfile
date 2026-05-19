@@ -1,11 +1,11 @@
 set shell := ["bash", "-cu"]
 
 # Run the web test app (Next.js)
-web:
+next:
   cd examples/next-test && npm install && npm run dev
 
 # Run the mobile test app (Expo)
-mobile:
+expo:
   cd examples/expo-test && npm install && npx expo start 
 
 # Run the Axum test server
@@ -17,10 +17,14 @@ axum-ngrok:
   cd examples/axum-test && NGROK_ENABLED=true cargo run
 
 vipps-examples:
-  cargo run -p solari-core --example vipps_scenarios
+  cargo run -p solari --example vipps_scenarios
 
-vipps-examples:
-  cargo run -p solari-core --example stripe_scenarios
+stripe-examples:
+  cargo run -p solari --example stripe_scenarios
+
+examples:
+  just vipps-examples
+  just stripe-examples
 
 # Local CI checks for Rust workspace quality gates
 local-ci:

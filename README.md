@@ -18,27 +18,13 @@
 ```text
 solari/
 ├── crates/                        # Rust workspace crates
-│   ├── solari/                    # Main facade crate (feature flags)
-│   │   └── src/
-│   │       └── lib.rs
-│   ├── solari-core/
-│   │   └── src/
-│   │       ├── modules/
-│   │       │   ├── vipps/
-│   │       │   ├── apple_pay/
-│   │       │   └── stripe/
-│   │       ├── traits.rs
-│   │       ├── core.rs
-│   │       └── lib.rs
-│   └── solari-client/
-│       └── src/
-│           ├── handlers/
-│           │   ├── webhook.rs
-│           │   └── api.rs
-│           ├── storage/
-│           │   └── traits.rs
-│           ├── core.rs
-│           └── lib.rs
+│   └── solari/                    # Unified library (service + adapters + optional API)
+│       ├── src/
+│       │   ├── adapters/
+│       │   ├── handlers/
+│       │   ├── storage/
+│       │   └── lib.rs
+│       └── examples/
 ├── examples/                      # Example integrations / sandbox apps
 │   ├── next-test/
 │   ├── expo-test/
@@ -54,3 +40,9 @@ solari/
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).
+
+## Payment setup guides
+
+- [Stripe setup](stripe-how2.md)
+- [Apple Pay setup](apple-pay-how2.md)
+- [Vipps notes](vipps-how2.md)

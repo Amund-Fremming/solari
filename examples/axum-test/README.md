@@ -7,10 +7,9 @@ Super-slim Axum test backend for Solari.
 - `POST /pay`: creates a payment through `SolariPaymentService::pay` (generic pay API).
 - `GET /status`: fetches live status from Vipps using the last payment reference.
 - `POST /wipe`: clears local test state (last payment reference + cached snapshot).
-- `POST /solari/vipps/pay`: your Solari API route (mounted from `solari-client`).
-- `GET /solari/vipps/token`: your Solari API route.
-- `POST /solari/vipps/token/fetch`: your Solari API route.
-- `POST /solari/vipps/payments`: your Solari API route.
+- `POST /solari/pay`: generic Solari payment route (`provider` = `vipps`/`stripe`/`apple_pay`).
+- `GET /solari/status`: generic Solari status route (currently `provider=vipps`).
+- `POST /solari/webhooks/vipps`: Vipps webhook receiver endpoint.
 
 ## Example flow
 
@@ -43,9 +42,25 @@ curl -X POST http://127.0.0.1:3001/wipe
 Call your native Solari API directly:
 
 ```bash
-curl -X POST http://127.0.0.1:3001/solari/vipps/pay \
+curl -X POST http://127.0.0.1:3001/solari/pay \
 	-H 'content-type: application/json' \
-	-d '{"amount":67}'
+	-d '{"provider":"vipps","amount":67}'
+```
+
+Create a Stripe card payment intent:
+
+```bash
+curl -X POST http://127.0.0.1:3001/solari/pay \
+	-H 'content-type: application/json' \
+	-d '{"provider":"stripe","amount":2500,"currency":"nok","description":"Card test"}'
+```
+
+Create an Apple Pay intent:
+
+```bash
+curl -X POST http://127.0.0.1:3001/solari/pay \
+	-H 'content-type: application/json' \
+	-d '{"provider":"apple_pay","amount":2500,"currency":"nok","description":"Apple Pay test"}'
 ```
 
 ## Run
@@ -70,6 +85,11 @@ These are read from the workspace root `.env`.
 - `VIPPS_CLIENT_SECRET`: Vipps client secret.
 - `VIPPS_SUBSCRIPTION_KEY`: Vipps subscription key.
 - `VIPPS_MSN`: Vipps merchant serial number.
+- `STRIPE_SECRET_KEY`: Stripe API secret key (test mode, starts with `sk_test_`). Optional; when omitted, Stripe routes are disabled.
+- `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key (starts with `pk_test_`). Required if `STRIPE_SECRET_KEY` is set.
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook secret (starts with `whsec_`). Required if `STRIPE_SECRET_KEY` is set.
+- `STRIPE_API_BASE_URL`: optional, defaults to `https://api.stripe.com`.
+- `STRIPE_ACCOUNT_ID`: optional for Stripe Connect (`acct_...`).
 - `NGROK_ENABLED`: `true`/`false`. Default is `false`.
 - `NGROK_DOMAIN`: optional reserved public URL for stable public URL.
 - `NGROK_AUTHTOKEN`: optional token passed to ngrok process.

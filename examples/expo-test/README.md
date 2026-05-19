@@ -22,3 +22,20 @@ and that endpoint deep-links into `solari-expo-test://vipps-return` so Expo can 
 ```bash
 npx create-expo-app@latest .
 ```
+
+## Stripe SDK flow
+
+This example now uses `@stripe/stripe-react-native` and PaymentSheet.
+
+Set these env vars before starting Expo:
+
+```bash
+EXPO_PUBLIC_AXUM_BASE_URL=https://your-ngrok-domain.ngrok-free.app
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+npm start
+```
+
+Notes:
+
+- The app config includes Stripe plugin with merchant identifier `merchant.com.solari.test`.
+- For production Apple Pay, use your own merchant identifier and Apple Pay-capable iOS setup.

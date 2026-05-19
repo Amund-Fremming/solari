@@ -1,4 +1,4 @@
 export * from "./services/solariPaymentService";
-export * from "./types";
+export * from "./types/types";
 
 export * from "./components";

@@ -8,15 +8,15 @@ import {
   Text,
   View,
 } from "react-native";
+import { StripeProvider, useStripe } from "@stripe/stripe-react-native";
 
 import {
   createNativeClientNoRedirect,
   type PaymentSnapshot,
-  type VippsPaymentClient,
   VippsButtonNative,
 } from "@solari/solari-js/native";
 
-const vippsClient: VippsPaymentClient = createNativeClientNoRedirect({
+const vippsClient = createNativeClientNoRedirect({
   openUrl: async (url: string) => {
     await Linking.openURL(url);
     return "opened";
@@ -37,7 +37,12 @@ const FALLBACK_STATUS: PaymentSnapshot = {
   last_webhook_payload: null,
 };
 
-export default function App() {
+const STRIPE_PUBLISHABLE_KEY =
+  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+
+function AppScreen() {
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
   const [payment, setPayment] = useState<PaymentSnapshot>(FALLBACK_STATUS);
   const [feedback, setFeedback] = useState(
     "Ready to start the Vipps test flow.",
@@ -46,6 +51,12 @@ export default function App() {
     null,
   );
   const [busy, setBusy] = useState(false);
+  const [stripeFeedback, setStripeFeedback] = useState(
+    "Stripe SDK ready. Create an intent and open PaymentSheet.",
+  );
+  const [stripeBusy, setStripeBusy] = useState(false);
+  const { initPaymentSheet, presentPaymentSheet, isPlatformPaySupported } =
+    useStripe();
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +69,33 @@ export default function App() {
           setPayment(response.payment);
         }
       } catch (error) {
+  const [applePaySupported, setApplePaySupported] = useState<boolean | null>(
+    null,
+  );
         console.error("Failed to bootstrap Vipps payment state", error);
+  useEffect(() => {
+    let cancelled = false;
+
+    async function detectApplePaySupport() {
+      try {
+        const supported = await isPlatformPaySupported();
+        if (!cancelled) {
+          setApplePaySupported(supported);
+        }
+      } catch (error) {
+        console.error("Failed to detect Apple Pay support", error);
+        if (!cancelled) {
+          setApplePaySupported(false);
+        }
+      }
+    }
+
+    void detectApplePaySupport();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPlatformPaySupported]);
         if (!cancelled) {
           const message =
             error instanceof Error
@@ -67,6 +104,13 @@ export default function App() {
           setFeedback(message);
         }
       }
+
+    if (flow === "apple_pay" && applePaySupported === false) {
+      setStripeFeedback(
+        "Apple Pay is not available on this device/build. Use a physical iPhone with Wallet cards and a dev build, not Expo Go.",
+      );
+      return;
+    }
     }
 
     void bootstrap();
@@ -185,6 +229,76 @@ export default function App() {
     }
   }
 
+  async function handleStripePress(flow: "card" | "apple_pay") {
+    if (!STRIPE_PUBLISHABLE_KEY) {
+      setStripeFeedback(
+        "Set EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY before using Stripe SDK in Expo.",
+      );
+      return;
+    }
+
+    setStripeBusy(true);
+    setStripeFeedback(
+      `Creating ${flow} intent and opening Stripe PaymentSheet...`,
+    );
+
+    try {
+      const payload = {
+        amount: 2500,
+        currency: "nok",
+          <Text style={styles.panelHint}>
+            {applePaySupported === null
+              ? "Checking Apple Pay availability..."
+              : applePaySupported
+                ? "Apple Pay is available on this device."
+                : "Apple Pay unavailable here. PaymentSheet will fall back to Link/card methods."}
+          </Text>
+        description: `Solari ${flow} Expo test`,
+      };
+
+      const intent =
+        flow === "apple_pay"
+          ? await vippsClient.applePayPay(payload)
+          : await vippsClient.stripePay(payload);
+
+      const initResult = await initPaymentSheet({
+        merchantDisplayName: "Solari Test",
+        paymentIntentClientSecret: intent.client_secret,
+        allowsDelayedPaymentMethods: true,
+        returnURL: "solari-expo-test://vipps-return",
+        applePay:
+          flow === "apple_pay"
+            ? {
+                merchantCountryCode: "NO",
+              }
+            : undefined,
+      });
+
+      if (initResult.error) {
+        setStripeFeedback(
+          `Stripe init failed: ${formatStripeError(initResult.error)}`,
+        );
+        setStripeBusy(false);
+        return;
+      }
+
+      const presentResult = await presentPaymentSheet();
+      if (presentResult.error) {
+        setStripeFeedback(
+          `Stripe sheet failed: ${formatStripeError(presentResult.error)}`,
+        );
+      } else {
+        setStripeFeedback("Stripe PaymentSheet completed.");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Stripe flow failed.";
+      setStripeFeedback(message);
+    } finally {
+      setStripeBusy(false);
+    }
+  }
+
   return (
     <View style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -233,6 +347,38 @@ export default function App() {
         </View>
 
         <View style={styles.panel}>
+          <Text style={styles.panelLabel}>Stripe SDK</Text>
+          <Text style={styles.panelHint}>
+            Uses Stripe PaymentSheet from the Expo frontend SDK.
+          </Text>
+          <View style={styles.buttonRow}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={stripeBusy}
+              onPress={() => void handleStripePress("card")}
+              style={({ pressed }) => [
+                styles.stripeButton,
+                pressed && !stripeBusy ? styles.secondaryButtonPressed : null,
+              ]}
+            >
+              <Text style={styles.stripeButtonLabel}>Pay card (2500 NOK)</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={stripeBusy}
+              onPress={() => void handleStripePress("apple_pay")}
+              style={({ pressed }) => [
+                styles.appleButton,
+                pressed && !stripeBusy ? styles.secondaryButtonPressed : null,
+              ]}
+            >
+              <Text style={styles.stripeButtonLabel}>Pay Apple Pay intent</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.feedback}>{stripeFeedback}</Text>
+        </View>
+
+        <View style={styles.panel}>
           <Text style={styles.panelLabel}>Payment snapshot</Text>
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Status</Text>
@@ -265,6 +411,53 @@ export default function App() {
         </View>
       </ScrollView>
     </View>
+  );
+}
+
+function formatStripeError(error: unknown): string {
+  if (error && typeof error === "object") {
+    const maybeMessage = (error as { message?: unknown }).message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim().length > 0) {
+      return maybeMessage;
+    }
+
+    const maybeCode = (error as { code?: unknown }).code;
+    if (typeof maybeCode === "string" && maybeCode.trim().length > 0) {
+      return maybeCode;
+    }
+  }
+
+  return "Stripe payment sheet error";
+}
+
+export default function App() {
+  if (!STRIPE_PUBLISHABLE_KEY) {
+    return (
+      <View style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <View style={styles.missingStripeContainer}>
+          <Text style={styles.title}>Missing Stripe key</Text>
+          <Text style={styles.panelHint}>
+            Set EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY, then restart Expo to enable
+            Stripe SDK flows.
+          </Text>
+          <Text style={styles.panelHint}>Vipps flow still works.</Text>
+          <StripeProvider publishableKey="pk_test_placeholder">
+            <AppScreen />
+          </StripeProvider>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <StripeProvider
+      publishableKey={STRIPE_PUBLISHABLE_KEY}
+      merchantIdentifier="merchant.com.solari.test"
+      urlScheme="solari-expo-test"
+    >
+      <AppScreen />
+    </StripeProvider>
   );
 }
 
@@ -309,9 +502,6 @@ const styles = StyleSheet.create({
     color: "#d8c7b4",
     fontSize: 16,
     lineHeight: 24,
-  },
-  vippsButtonDisabled: {
-    opacity: 0.65,
   },
   secondaryButton: {
     alignItems: "center",
@@ -363,26 +553,52 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 12,
-  },
-  stackRow: {
-    gap: 8,
   },
   rowLabel: {
-    color: "#7b6249",
+    color: "#8f7a63",
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  rowValue: {
+    color: "#2f2418",
     fontSize: 14,
     fontWeight: "600",
   },
-  rowValue: {
-    color: "#23160d",
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "700",
-    textAlign: "right",
+  stackRow: {
+    gap: 6,
   },
   stackValue: {
-    color: "#23160d",
+    color: "#2f2418",
     fontSize: 14,
-    lineHeight: 20,
+  },
+  buttonRow: {
+    gap: 10,
+  },
+  stripeButton: {
+    alignItems: "center",
+    backgroundColor: "#635bff",
+    borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 16,
+  },
+  appleButton: {
+    alignItems: "center",
+    backgroundColor: "#1f1f1f",
+    borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 48,
+    paddingHorizontal: 16,
+  },
+  stripeButtonLabel: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  missingStripeContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 32,
+    gap: 12,
   },
 });

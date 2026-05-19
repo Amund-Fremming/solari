@@ -20,7 +20,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && mkdir -p dist/components && cp src/components/pay-with-vipps.svg dist/components/pay-with-vipps.svg",
+    "build": "tsc -p tsconfig.json && mkdir -p dist/components/vipps && cp src/components/vipps/pay-with-vipps.svg dist/components/vipps/pay-with-vipps.svg",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },

@@ -2,6 +2,16 @@
 
 Next.js sandbox for Solari web Vipps integration.
 
+## Stripe SDK flow
+
+This example now includes Stripe.js via `@stripe/react-stripe-js`.
+
+- Use the "Card Intent" or "Apple Pay Intent" button to create a payment intent from Solari backend.
+- Confirm the payment inside the embedded Stripe Payment Element.
+- For Apple Pay to appear on web, Stripe domain verification and Apple Pay browser/device support are required.
+
+The Next app reads API base URL from `NEXT_PUBLIC_AXUM_BASE_URL`.
+
 ## Local run
 
 1. Start the Axum backend from workspace root:

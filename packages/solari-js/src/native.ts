@@ -1,7 +1,9 @@
-export type { VippsButtonProps } from "./components/VippsButton";
-export * from "./types";
+export type { VippsButtonProps } from "./components/vipps/VippsButton";
+export type { ApplePayButtonProps } from "./components/apple_pay/ApplePayButton";
+export * from "./types/types";
 
-export { VippsButton as VippsButtonNative } from "./components/VippsButton.native";
+export { VippsButton as VippsButtonNative } from "./components/vipps/VippsButton.native";
+export { ApplePayButton as ApplePayButtonNative } from "./components/apple_pay/ApplePayButton.native";
 
 export {
   createNativeClient,

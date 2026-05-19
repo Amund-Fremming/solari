@@ -1,7 +1,7 @@
 use std::{env, sync::Arc};
 
-use solari_client::app_router_with_vipps;
-use solari_core::{SolariPaymentService, VippsConfig};
+use solari::{app_router_with_vipps, app_router_with_vipps_and_stripe};
+use solari::{SolariPaymentService, StripeConfig, VippsConfig};
 use tokio::sync::RwLock;
 
 mod handlers;
@@ -32,10 +32,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })),
     };
 
-    let app = create_router(state).merge(
-        app_router_with_vipps(vipps_config_from_env()?)
-            .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?,
-    );
+    let vipps_config = vipps_config_from_env()?;
+    let stripe_config = stripe_config_from_env_if_present()?;
+
+    let solari_api_router = if let Some(stripe_config) = stripe_config {
+        println!("solari routes enabled: /solari/pay, /solari/status, /solari/webhooks/vipps");
+        app_router_with_vipps_and_stripe(vipps_config, stripe_config)
+            .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?
+    } else {
+        println!("stripe disabled: /solari/pay still works for vipps; set STRIPE_SECRET_KEY to enable stripe/apple_pay provider in /solari/pay");
+        app_router_with_vipps(vipps_config)
+            .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?
+    };
+
+    let app = create_router(state).merge(solari_api_router);
 
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", listen_port))
         .await
@@ -84,4 +94,25 @@ fn vipps_config_from_env() -> Result<VippsConfig, Box<dyn std::error::Error>> {
         required_env("VIPPS_SUBSCRIPTION_KEY")?,
         required_env("VIPPS_MSN")?,
     ))
+}
+
+fn stripe_config_from_env_if_present() -> Result<Option<StripeConfig>, Box<dyn std::error::Error>> {
+    let maybe_secret = read_env_string("STRIPE_SECRET_KEY");
+    if maybe_secret.is_none() {
+        return Ok(None);
+    }
+
+    let api_base_url = read_env_string("STRIPE_API_BASE_URL")
+        .unwrap_or_else(|| "https://api.stripe.com".to_string());
+    let publishable_key = required_env("STRIPE_PUBLISHABLE_KEY")?;
+    let webhook_secret = required_env("STRIPE_WEBHOOK_SECRET")?;
+    let account_id = read_env_string("STRIPE_ACCOUNT_ID");
+
+    Ok(Some(StripeConfig::new(
+        api_base_url,
+        maybe_secret.expect("checked is_some"),
+        publishable_key,
+        webhook_secret,
+        account_id,
+    )))
 }

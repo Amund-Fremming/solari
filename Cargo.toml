@@ -1,8 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/solari-core",
-  "crates/solari-server",
+  "solari",
   "examples/axum-test",
 ]
 
