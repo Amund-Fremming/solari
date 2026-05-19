@@ -41,7 +41,8 @@ const STRIPE_PUBLISHABLE_KEY =
   process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
 
 function AppScreen() {
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet, isPlatformPaySupported } =
+    useStripe();
 
   const [payment, setPayment] = useState<PaymentSnapshot>(FALLBACK_STATUS);
   const [feedback, setFeedback] = useState(
@@ -55,24 +56,10 @@ function AppScreen() {
     "Stripe SDK ready. Create an intent and open PaymentSheet.",
   );
   const [stripeBusy, setStripeBusy] = useState(false);
-  const { initPaymentSheet, presentPaymentSheet, isPlatformPaySupported } =
-    useStripe();
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function bootstrap() {
-      try {
-        const response = await vippsClient.getPaymentStatus();
-
-        if (!cancelled) {
-          setPayment(response.payment);
-        }
-      } catch (error) {
   const [applePaySupported, setApplePaySupported] = useState<boolean | null>(
     null,
   );
-        console.error("Failed to bootstrap Vipps payment state", error);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -96,6 +83,19 @@ function AppScreen() {
       cancelled = true;
     };
   }, [isPlatformPaySupported]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      try {
+        const response = await vippsClient.getPaymentStatus();
+
+        if (!cancelled) {
+          setPayment(response.payment);
+        }
+      } catch (error) {
+        console.error("Failed to bootstrap Vipps payment state", error);
         if (!cancelled) {
           const message =
             error instanceof Error
@@ -104,13 +104,6 @@ function AppScreen() {
           setFeedback(message);
         }
       }
-
-    if (flow === "apple_pay" && applePaySupported === false) {
-      setStripeFeedback(
-        "Apple Pay is not available on this device/build. Use a physical iPhone with Wallet cards and a dev build, not Expo Go.",
-      );
-      return;
-    }
     }
 
     void bootstrap();
@@ -237,6 +230,13 @@ function AppScreen() {
       return;
     }
 
+    if (flow === "apple_pay" && applePaySupported === false) {
+      setStripeFeedback(
+        "Apple Pay is not available on this device/build. Use a physical iPhone with Wallet cards and a dev build, not Expo Go.",
+      );
+      return;
+    }
+
     setStripeBusy(true);
     setStripeFeedback(
       `Creating ${flow} intent and opening Stripe PaymentSheet...`,
@@ -246,13 +246,6 @@ function AppScreen() {
       const payload = {
         amount: 2500,
         currency: "nok",
-          <Text style={styles.panelHint}>
-            {applePaySupported === null
-              ? "Checking Apple Pay availability..."
-              : applePaySupported
-                ? "Apple Pay is available on this device."
-                : "Apple Pay unavailable here. PaymentSheet will fall back to Link/card methods."}
-          </Text>
         description: `Solari ${flow} Expo test`,
       };
 
@@ -365,16 +358,26 @@ function AppScreen() {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              disabled={stripeBusy}
+              disabled={stripeBusy || applePaySupported === false}
               onPress={() => void handleStripePress("apple_pay")}
               style={({ pressed }) => [
                 styles.appleButton,
                 pressed && !stripeBusy ? styles.secondaryButtonPressed : null,
+                stripeBusy || applePaySupported === false
+                  ? styles.buttonDisabled
+                  : null,
               ]}
             >
               <Text style={styles.stripeButtonLabel}>Pay Apple Pay intent</Text>
             </Pressable>
           </View>
+          <Text style={styles.panelHint}>
+            {applePaySupported === null
+              ? "Checking Apple Pay availability..."
+              : applePaySupported
+                ? "Apple Pay is available on this device."
+                : "Apple Pay unavailable here. PaymentSheet will fall back to Link/card methods."}
+          </Text>
           <Text style={styles.feedback}>{stripeFeedback}</Text>
         </View>
 
@@ -595,6 +598,9 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 14,
     fontWeight: "700",
+  },
+  buttonDisabled: {
+    opacity: 0.45,
   },
   missingStripeContainer: {
     paddingHorizontal: 20,
