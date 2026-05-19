@@ -11,7 +11,7 @@
     "@solari/solari-js": "file:../../packages/solari-js",
     "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^4.10.0",
-    "next": "15.0.4",
+    "next": "15.5.18",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
