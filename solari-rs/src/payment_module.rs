@@ -10,15 +10,7 @@ use crate::{
     models::{PaymentProviderResponse, PaymentType},
 };
 use std::time::Duration;
-#[cfg(feature = "stripe")]
 use tracing::{error, info};
-
-#[cfg(feature = "stripe")]
-use crate::models::{StripePayRequest, StripePaymentFlowType, StripePaymentIntentResponse};
-#[cfg(feature = "vipps")]
-use crate::models::{
-    VippsCreatePaymentResult, VippsPayRequest, VippsPaymentStatusResult, VippsTokenResponse,
-};
 
 pub use crate::adapters::stripe::models::StripeConfig;
 pub use crate::adapters::vipps::models::VippsConfig;
@@ -30,10 +22,59 @@ pub struct SolariPaymentService {
 }
 
 #[derive(Debug, Clone)]
+pub struct VippsTokenResponse {
+    pub token: String,
+    pub expires_at: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct VippsCreatePaymentResult {
+    pub reference: Option<String>,
+    pub redirect_url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VippsPaymentStatusResult {
+    pub reference: Option<String>,
+    pub raw_status: String,
+    pub status: crate::models::PaymentStatus,
+}
+
+#[derive(Debug, Clone)]
+pub struct VippsPayRequest {
+    pub amount: u32,
+    pub return_url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StripePayRequest {
+    pub amount: u32,
+    pub currency: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct StripePaymentIntentResponse {
+    pub provider: PaymentType,
+    pub flow: StripePaymentFlowType,
+    pub status: String,
+    pub amount: u32,
+    pub currency: String,
+    pub payment_intent_id: String,
+    pub client_secret: String,
+    pub publishable_key: String,
+    pub account_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum StripePaymentFlowType {
+    Card,
+    ApplePay,
+}
+
+#[derive(Debug, Clone)]
 pub enum PayRequest {
-    #[cfg(feature = "vipps")]
     Vipps(VippsPayRequest),
-    #[cfg(feature = "stripe")]
     Stripe(StripePayRequest),
 }
 
@@ -71,7 +112,6 @@ impl SolariPaymentService {
         request: PayRequest,
     ) -> Result<PaymentProviderResponse, PaymentProviderError> {
         match request {
-            #[cfg(feature = "vipps")]
             PayRequest::Vipps(request) => {
                 let provider = self
                     .vipps_provider
@@ -91,7 +131,6 @@ impl SolariPaymentService {
                     return_url: request.return_url,
                 })
             }
-            #[cfg(feature = "stripe")]
             PayRequest::Stripe(request) => {
                 let provider = self
                     .stripe_provider
@@ -115,14 +154,9 @@ impl SolariPaymentService {
                         return_url: None,
                     })
             }
-            #[allow(unreachable_patterns)]
-            _ => Err(PaymentProviderError::UnsupportedOperation(
-                "no enabled payment provider matches the request",
-            )),
         }
     }
 
-    #[cfg(feature = "vipps")]
     pub async fn vipps_fetch_access_token(
         &self,
     ) -> Result<VippsTokenResponse, PaymentProviderError> {
@@ -139,7 +173,6 @@ impl SolariPaymentService {
         })
     }
 
-    #[cfg(feature = "vipps")]
     pub async fn vipps_get_valid_token(&self) -> Result<VippsTokenResponse, PaymentProviderError> {
         let provider = self
             .vipps_provider
@@ -154,7 +187,6 @@ impl SolariPaymentService {
         })
     }
 
-    #[cfg(feature = "stripe")]
     pub async fn stripe_create_card_payment_intent(
         &self,
         request: StripePayRequest,
@@ -163,7 +195,6 @@ impl SolariPaymentService {
             .await
     }
 
-    #[cfg(feature = "stripe")]
     pub async fn stripe_create_apple_pay_payment_intent(
         &self,
         request: StripePayRequest,
@@ -172,7 +203,6 @@ impl SolariPaymentService {
             .await
     }
 
-    #[cfg(feature = "stripe")]
     async fn stripe_create_payment_intent(
         &self,
         request: StripePayRequest,
@@ -223,7 +253,6 @@ impl SolariPaymentService {
         Ok(map_intent_response(intent, flow))
     }
 
-    #[cfg(feature = "vipps")]
     pub async fn vipps_get_payment_status(
         &self,
         reference: &str,
@@ -243,7 +272,6 @@ impl SolariPaymentService {
     }
 }
 
-#[cfg(feature = "stripe")]
 fn map_intent_response(
     intent: StripePaymentIntentResult,
     flow: StripePaymentFlow,

@@ -91,3 +91,4 @@ impl IntoResponse for SolariApiError {
         (status, Json(body)).into_response()
     }
 }
+// ...existing code...
