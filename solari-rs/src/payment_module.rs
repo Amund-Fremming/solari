@@ -1,16 +1,22 @@
 use crate::{
     adapters::{
         stripe::models::{
-            StripeConfig as InternalStripeConfig, StripeCreatePaymentIntentRequest,
-            StripePaymentFlow, StripePaymentIntentResult, StripeProvider,
+            StripeCreatePaymentIntentRequest, StripePaymentFlow, StripePaymentIntentResult,
+            StripeProvider,
         },
-        vipps::{adapter::VippsProvider, models::VippsConfig as InternalVippsConfig},
+        vipps::adapter::VippsProvider,
     },
     error::PaymentProviderError,
     models::{PaymentProviderResponse, PaymentType},
 };
 use std::time::Duration;
 use tracing::{error, info};
+
+#[cfg(feature = "stripe")]
+use crate::adapters::stripe::models::StripeConfig as InternalStripeConfig;
+
+#[cfg(feature = "vipps")]
+use crate::adapters::vipps::models::VippsConfig as InternalVippsConfig;
 
 pub use crate::adapters::stripe::models::StripeConfig;
 pub use crate::adapters::vipps::models::VippsConfig;

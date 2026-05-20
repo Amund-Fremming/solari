@@ -41,15 +41,19 @@ pub enum PaymentProviderError {
     WriteLockError(String),
 }
 
+#[cfg(any(feature = "vipps", feature = "stripe"))]
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
+#[cfg(any(feature = "vipps", feature = "stripe"))]
 use serde::Serialize;
 
+#[cfg(any(feature = "vipps", feature = "stripe"))]
 pub type ApiResult<T> = Result<T, SolariApiError>;
 
+#[cfg(any(feature = "vipps", feature = "stripe"))]
 #[derive(Debug, thiserror::Error)]
 pub enum SolariApiError {
     #[error("{0}")]
@@ -59,11 +63,13 @@ pub enum SolariApiError {
     BadRequest(String),
 }
 
+#[cfg(any(feature = "vipps", feature = "stripe"))]
 #[derive(Debug, Serialize)]
 struct ErrorBody {
     error: String,
 }
 
+#[cfg(any(feature = "vipps", feature = "stripe"))]
 impl IntoResponse for SolariApiError {
     fn into_response(self) -> Response {
         let status = match &self {
@@ -91,4 +97,3 @@ impl IntoResponse for SolariApiError {
         (status, Json(body)).into_response()
     }
 }
-// ...existing code...

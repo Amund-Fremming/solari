@@ -9,8 +9,8 @@ description = "Unified Solari payment service and optional API router"
 
 [features]
 default = []
-vipps = []
-stripe = []
+vipps = ["dep:axum", "dep:tokio"]
+stripe = ["dep:axum", "dep:tokio"]
 
 [dependencies]
 async-trait = "0.1"

@@ -7,17 +7,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{ApiResult, SolariApiError},
-    models::{AppState, PaymentType},
-    webhooks::WebhookEvent,
+    models::{AppState, PaymentType, WebhookEvent},
     PayRequest, PaymentProviderResponse, PaymentStatus, StripePayRequest, StripePaymentFlowType,
     StripePaymentIntentResponse, VippsPayRequest,
 };
 
 #[cfg(feature = "vipps")]
-use crate::webhooks::VippsWebhookPayload;
+use crate::models::VippsWebhookPayload;
 
 #[cfg(feature = "stripe")]
-use crate::webhooks::StripeWebhookPayload;
+use crate::models::StripeWebhookPayload;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
