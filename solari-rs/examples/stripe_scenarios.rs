@@ -1,4 +1,5 @@
 use std::{env, error::Error};
+use tracing::info;
 
 use solari::{PayRequest, SolariPaymentService, StripeConfig, StripePayRequest};
 
@@ -43,7 +44,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
 
     if !has_required_stripe_env() {
-        println!(
+        info!(
             "Skipping Stripe scenario: set STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, and STRIPE_WEBHOOK_SECRET to run it."
         );
         return Ok(());
@@ -60,7 +61,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }))
         .await?;
 
-    println!(
+    info!(
         "Stripe pay call completed: provider={}, status={}, reference={:?}",
         response.provider,
         match response.status {
