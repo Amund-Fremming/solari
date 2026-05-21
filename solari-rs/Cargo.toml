@@ -27,3 +27,11 @@ tokio = { workspace = true, optional = true }
 dotenvy = "0.15"
 tokio.workspace = true
 tracing-subscriber = "0.3"
+
+[[example]]
+name = "stripe_scenarios"
+required-features = ["stripe"]
+
+[[example]]
+name = "vipps_scenarios"
+required-features = ["vipps"]

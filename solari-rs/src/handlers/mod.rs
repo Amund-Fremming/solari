@@ -2,14 +2,12 @@ pub mod solari;
 
 use axum::Router;
 
-use crate::{
-    models::AppState, PaymentProviderError, SolariPaymentService,
-};
+use crate::models::AppState;
 
 #[cfg(feature = "vipps")]
-use crate::VippsConfig;
+use crate::{PaymentProviderError, SolariPaymentService, VippsConfig};
 
-#[cfg(feature = "stripe")]
+#[cfg(all(feature = "vipps", feature = "stripe"))]
 use crate::StripeConfig;
 
 pub fn solari_router(state: AppState) -> Router {
