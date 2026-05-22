@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(feature = "vipps")]
+use std::sync::Arc;
+
+#[cfg(feature = "vipps")]
+use crate::models::{BoxFuture, WebhookEvent};
+
 #[derive(Debug, Clone)]
 pub struct CachedToken {
     pub token: String,
@@ -150,3 +156,21 @@ pub struct VippsPaymentMethod {
     #[serde(rename = "type")]
     pub kind: String,
 }
+
+#[cfg(feature = "vipps")]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VippsWebhookPayload {
+    pub msn: String,
+    pub reference: String,
+    pub psp_reference: Option<String>,
+    pub name: String,
+    pub currency: String,
+    pub amount: i64,
+    pub timestamp: String,
+    pub idempotency_key: Option<String>,
+    pub success: bool,
+}
+
+#[cfg(feature = "vipps")]
+pub type VippsWebhookFn = Arc<dyn Fn(WebhookEvent<VippsWebhookPayload>) -> BoxFuture + Send + Sync>;

@@ -10,10 +10,10 @@ use crate::{
 };
 
 #[cfg(feature = "vipps")]
-use crate::{models::VippsWebhookPayload, VippsConfig};
+use crate::{adapters::vipps::models::VippsWebhookPayload, VippsConfig};
 
 #[cfg(feature = "stripe")]
-use crate::{models::StripeWebhookPayload, StripeConfig};
+use crate::{adapters::stripe::models::StripeWebhookPayload, StripeConfig};
 
 pub struct SolariRouter {
     payment_module: SolariPaymentService,

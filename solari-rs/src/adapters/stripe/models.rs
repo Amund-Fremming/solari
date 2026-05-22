@@ -7,6 +7,15 @@ use async_trait::async_trait;
 use serde::Deserialize;
 use tracing::{error, info};
 
+#[cfg(feature = "stripe")]
+use serde_json::Value;
+
+#[cfg(feature = "stripe")]
+use std::sync::Arc;
+
+#[cfg(feature = "stripe")]
+use crate::models::{BoxFuture, WebhookEvent};
+
 #[derive(Debug)]
 pub struct StripeConfig {
     pub api_base_url: String,
@@ -101,8 +110,7 @@ impl StripeProvider {
         if request.amount == 0 {
             error!(
                 "Stripe create_payment_intent rejected invalid amount: flow={} amount={}",
-                flow_label,
-                request.amount
+                flow_label, request.amount
             );
             return Err(PaymentProviderError::InvalidAmount(request.amount));
         }
@@ -114,9 +122,7 @@ impl StripeProvider {
 
         info!(
             "Stripe create_payment_intent started: flow={} amount={} currency={}",
-            flow_label,
-            request.amount,
-            request.currency
+            flow_label, request.amount, request.currency
         );
 
         let mut form_fields = vec![
@@ -180,9 +186,7 @@ impl StripeProvider {
 
             error!(
                 "Stripe create_payment_intent failed: flow={} status={} message={}",
-                flow_label,
-                status,
-                message
+                flow_label, status, message
             );
 
             return Err(PaymentProviderError::RequestFailed(message));
@@ -197,10 +201,7 @@ impl StripeProvider {
 
         info!(
             "Stripe create_payment_intent succeeded: flow={} intent_id={} amount={} status={}",
-            flow_label,
-            payload.id,
-            payload.amount,
-            payload.status
+            flow_label, payload.id, payload.amount, payload.status
         );
 
         Ok(StripePaymentIntentResult {
@@ -242,3 +243,24 @@ impl PaymentProvider for StripeProvider {
         })
     }
 }
+
+#[cfg(feature = "stripe")]
+#[derive(Debug, Clone, Deserialize)]
+pub struct StripeWebhookPayload {
+    pub id: String,
+    pub object: String,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub created: i64,
+    pub data: StripeWebhookData,
+}
+
+#[cfg(feature = "stripe")]
+#[derive(Debug, Clone, Deserialize)]
+pub struct StripeWebhookData {
+    pub object: Value,
+}
+
+#[cfg(feature = "stripe")]
+pub type StripeWebhookFn =
+    Arc<dyn Fn(WebhookEvent<StripeWebhookPayload>) -> BoxFuture + Send + Sync>;

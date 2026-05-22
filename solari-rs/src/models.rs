@@ -3,12 +3,6 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-#[cfg(feature = "vipps")]
-use crate::models::VippsWebhookFn;
-
-#[cfg(feature = "stripe")]
-use crate::models::StripeWebhookFn;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaymentStatus {
     Pending,
@@ -59,9 +53,9 @@ pub type OnPayFn = Arc<dyn Fn(PaymentProviderResponse) -> BoxFuture + Send + Syn
 pub struct SolariHandlers {
     pub on_pay: Option<OnPayFn>,
     #[cfg(feature = "vipps")]
-    pub on_vipps_webhook: Option<VippsWebhookFn>,
+    pub on_vipps_webhook: Option<crate::adapters::vipps::models::VippsWebhookFn>,
     #[cfg(feature = "stripe")]
-    pub on_stripe_webhook: Option<StripeWebhookFn>,
+    pub on_stripe_webhook: Option<crate::adapters::stripe::models::StripeWebhookFn>,
 }
 
 #[cfg(any(feature = "vipps", feature = "stripe"))]

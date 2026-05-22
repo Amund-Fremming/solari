@@ -13,10 +13,10 @@ use crate::{
 };
 
 #[cfg(feature = "vipps")]
-use crate::models::VippsWebhookPayload;
+use crate::adapters::vipps::models::VippsWebhookPayload;
 
 #[cfg(feature = "stripe")]
-use crate::models::StripeWebhookPayload;
+use crate::adapters::stripe::models::StripeWebhookPayload;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
