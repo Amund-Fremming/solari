@@ -26,6 +26,20 @@ export const VIPPS_COLORS = {
 const DEFAULT_BASE_URL = "http://127.0.0.1:3001";
 const TERMINAL_PAYMENT_STATUSES = new Set(["completed", "failed", "cancelled"]);
 
+function normalizeBaseUrl(rawUrl: string): string {
+  const trimmed = rawUrl.trim().replace(/\/$/, "");
+
+  if (trimmed.length === 0) {
+    return DEFAULT_BASE_URL;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed}`;
+}
+
 function getEnv(name: string): string | undefined {
   if (typeof process !== "undefined" && process.env?.[name]) {
     return process.env[name];
@@ -41,7 +55,7 @@ function resolveDefaultBaseUrl(): string {
   const configured =
     getEnv("NEXT_PUBLIC_AXUM_BASE_URL") ?? getEnv("EXPO_PUBLIC_AXUM_BASE_URL");
 
-  return configured?.trim().replace(/\/$/, "") || DEFAULT_BASE_URL;
+  return configured ? normalizeBaseUrl(configured) : DEFAULT_BASE_URL;
 }
 
 function defaultLogger(): SolariLogger {
@@ -133,10 +147,7 @@ export class SolariPaymentService {
   private readonly openUrl?: SolariClientOptions["openUrl"];
 
   constructor(options: SolariClientOptions = {}) {
-    this.baseUrl = (options.baseUrl || resolveDefaultBaseUrl()).replace(
-      /\/$/,
-      "",
-    );
+    this.baseUrl = normalizeBaseUrl(options.baseUrl || resolveDefaultBaseUrl());
     this.logger = options.logger || defaultLogger();
     this.openUrl = options.openUrl;
   }

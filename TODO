@@ -1,4 +1,0 @@
-TODO
-
-- [ ] update the service to be able to call the pay routers
-- [ ] update the axum repo and the ts examples to use the new stuff

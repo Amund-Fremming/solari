@@ -22,6 +22,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && mkdir -p dist/components/vipps && cp src/components/vipps/pay-with-vipps.svg dist/components/vipps/pay-with-vipps.svg",
     "clean": "rm -rf dist",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "peerDependencies": {

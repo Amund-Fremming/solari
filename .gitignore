@@ -1,7 +1,7 @@
 /target
 node_modules/
 .expo/
-packages/solari-js/dist/
+/solari-js/dist/
 /.env
 /crates/solari-core/.env
 /examples/axum-test/.env
