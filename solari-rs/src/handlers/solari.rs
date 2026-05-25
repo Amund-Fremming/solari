@@ -176,7 +176,11 @@ async fn vipps_webhook(
         })
         .await;
     }
-    Json(WebhookAck { ok: true, provider: "vipps", received: true })
+    Json(WebhookAck {
+        ok: true,
+        provider: "vipps",
+        received: true,
+    })
 }
 
 #[cfg(feature = "stripe")]
@@ -191,7 +195,11 @@ async fn stripe_webhook(
         })
         .await;
     }
-    Json(WebhookAck { ok: true, provider: "stripe", received: true })
+    Json(WebhookAck {
+        ok: true,
+        provider: "stripe",
+        received: true,
+    })
 }
 
 async fn stripe_pay(

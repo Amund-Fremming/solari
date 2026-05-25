@@ -1,10 +1,10 @@
 use crate::{
     adapters::{
+        stripe::adapter::StripeAdapter,
         stripe::models::{
             StripeCreatePaymentIntentRequest, StripePaymentFlow, StripePaymentIntentResult,
-            StripeProvider,
         },
-        vipps::adapter::VippsProvider,
+        vipps::adapter::VippsAdapter,
     },
     error::PaymentProviderError,
     models::{PaymentProviderResponse, PaymentType},
@@ -23,8 +23,8 @@ pub use crate::adapters::vipps::models::VippsConfig;
 
 pub struct SolariPaymentService {
     client: reqwest::Client,
-    vipps_provider: Option<VippsProvider>,
-    stripe_provider: Option<StripeProvider>,
+    vipps_provider: Option<VippsAdapter>,
+    stripe_provider: Option<StripeAdapter>,
 }
 
 #[derive(Debug, Clone)]
@@ -103,13 +103,13 @@ impl SolariPaymentService {
 
     #[cfg(feature = "vipps")]
     pub fn vipps(&mut self, config: InternalVippsConfig) -> &mut Self {
-        self.vipps_provider = Some(VippsProvider::new(self.client.clone(), config));
+        self.vipps_provider = Some(VippsAdapter::new(self.client.clone(), config));
         self
     }
 
     #[cfg(feature = "stripe")]
     pub fn stripe(&mut self, config: InternalStripeConfig) -> &mut Self {
-        self.stripe_provider = Some(StripeProvider::new(self.client.clone(), config));
+        self.stripe_provider = Some(StripeAdapter::new(self.client.clone(), config));
         self
     }
 

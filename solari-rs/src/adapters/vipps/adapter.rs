@@ -17,13 +17,13 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct VippsProvider {
+pub struct VippsAdapter {
     client: reqwest::Client,
     config: VippsConfig,
     token_cache: Arc<RwLock<Option<CachedToken>>>,
 }
 
-impl VippsProvider {
+impl VippsAdapter {
     pub fn new(client: reqwest::Client, config: VippsConfig) -> Self {
         Self {
             client,
@@ -231,7 +231,7 @@ fn map_vipps_payment_status(raw_status: &str) -> PaymentStatus {
 }
 
 #[async_trait]
-impl PaymentProvider for VippsProvider {
+impl PaymentProvider for VippsAdapter {
     async fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
         self.create_payment(amount, None).await?;
 
