@@ -1,1 +1,0 @@
-{"version":3,"file":"ApplePayButton.native.d.ts","sourceRoot":"","sources":["../../../src/components/apple_pay/ApplePayButton.native.tsx"],"names":[],"mappings":"AACA,OAAO,EAA+B,SAAS,EAAE,MAAM,cAAc,CAAC;AACtE,OAAO,KAAK,EAAE,mBAAmB,EAAE,MAAM,kBAAkB,CAAC;AA2B5D,wBAAgB,cAAc,CAAC,KAAK,EAAE,mBAAmB;yBAY9B;QAAE,OAAO,EAAE,OAAO,CAAA;KAAE;;;GAS9C"}
