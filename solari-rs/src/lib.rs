@@ -8,16 +8,16 @@ mod payment_module;
 mod solari_router;
 mod traits;
 
-pub use error::PaymentProviderError;
+pub use error::SolariError;
 pub use models::{
-    OnPayFn, PaymentProviderResponse, PaymentStatus, PaymentType, SolariHandlers, WebhookEvent,
+    OnPayFn, PaymentProvider, PaymentResponse, PaymentStatus, SolariHandlers, WebhookEvent,
 };
 pub use payment_module::{
     PayRequest, SolariPaymentService, StripeConfig, StripePayRequest, StripePaymentFlowType,
-    StripePaymentIntentResponse, VippsConfig, VippsCreatePaymentResult, VippsPayRequest,
-    VippsPaymentStatusResult, VippsTokenResponse,
+    StripePaymentResponse, VippsConfig, VippsCreatePaymentResult, VippsPayRequest,
+    VippsPaymentResult, VippsTokenResponse,
 };
-pub use traits::PaymentProvider;
+pub use traits::PaymentAdapter;
 
 #[cfg(any(feature = "vipps", feature = "stripe"))]
 pub use solari_router::{Solari, SolariApi, SolariRouter};

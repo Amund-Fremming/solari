@@ -6,7 +6,7 @@ use axum::Router;
 use crate::{
     handlers::app_router,
     models::{AppState, SolariHandlers, WebhookEvent},
-    PaymentProviderError, PaymentProviderResponse, SolariPaymentService,
+    PaymentResponse, SolariError, SolariPaymentService,
 };
 
 #[cfg(feature = "vipps")]
@@ -21,7 +21,7 @@ pub struct SolariRouter {
 }
 
 impl SolariRouter {
-    pub fn new() -> Result<Self, PaymentProviderError> {
+    pub fn new() -> Result<Self, SolariError> {
         Ok(Self {
             payment_module: SolariPaymentService::new()?,
             handlers: SolariHandlers::default(),
@@ -42,7 +42,7 @@ impl SolariRouter {
 
     pub fn on_pay<F, Fut>(mut self, f: F) -> Self
     where
-        F: Fn(PaymentProviderResponse) -> Fut + Send + Sync + 'static,
+        F: Fn(PaymentResponse) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
         self.handlers.on_pay = Some(Arc::new(move |p| Box::pin(f(p))));
@@ -84,7 +84,7 @@ pub struct Solari {
 }
 
 impl Solari {
-    pub fn new() -> Result<Self, PaymentProviderError> {
+    pub fn new() -> Result<Self, SolariError> {
         Ok(Self {
             payment_module: SolariPaymentService::new()?,
             domain: None,

@@ -1,13 +1,10 @@
 use crate::{
     adapters::{
-        stripe::adapter::StripeAdapter,
-        stripe::models::{
-            StripeCreatePaymentIntentRequest, StripePaymentFlow, StripePaymentIntentResult,
-        },
+        stripe::{adapter::StripeAdapter, models::StripePaymentRequest},
         vipps::adapter::VippsAdapter,
     },
-    error::PaymentProviderError,
-    models::{PaymentProviderResponse, PaymentType},
+    models::{PaymentProvider, PaymentResponse},
+    PaymentStatus, SolariError,
 };
 #[cfg(any(feature = "vipps", feature = "stripe"))]
 use std::time::Duration;
@@ -42,10 +39,11 @@ pub struct VippsCreatePaymentResult {
 }
 
 #[derive(Debug, Clone)]
-pub struct VippsPaymentStatusResult {
+pub struct VippsPaymentResult {
     pub reference: Option<String>,
     pub raw_status: String,
-    pub status: crate::models::PaymentStatus,
+    pub status: PaymentStatus,
+    pub currency: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -62,16 +60,13 @@ pub struct StripePayRequest {
 }
 
 #[derive(Debug, Clone)]
-pub struct StripePaymentIntentResponse {
-    pub provider: PaymentType,
+pub struct StripePaymentResponse {
+    pub provider: PaymentProvider,
     pub flow: StripePaymentFlowType,
     pub status: String,
     pub amount: u32,
     pub currency: String,
     pub payment_intent_id: String,
-    pub client_secret: String,
-    pub publishable_key: String,
-    pub account_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -87,7 +82,7 @@ pub enum PayRequest {
 }
 
 impl SolariPaymentService {
-    pub fn new() -> Result<Self, PaymentProviderError> {
+    pub fn new() -> Result<Self, SolariError> {
         #[cfg(any(feature = "vipps", feature = "stripe"))]
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
@@ -117,23 +112,20 @@ impl SolariPaymentService {
         self
     }
 
-    pub async fn pay(
-        &self,
-        request: PayRequest,
-    ) -> Result<PaymentProviderResponse, PaymentProviderError> {
+    pub async fn pay(&self, request: PayRequest) -> Result<PaymentResponse, SolariError> {
         match request {
             PayRequest::Vipps(request) => {
                 let provider = self
                     .vipps_provider
                     .as_ref()
-                    .ok_or(PaymentProviderError::NotConfigured(PaymentType::Vipps))?;
+                    .ok_or(SolariError::NotConfigured(PaymentProvider::Vipps))?;
 
                 let response = provider
                     .create_payment(request.amount, request.return_url.as_deref())
                     .await?;
 
-                Ok(PaymentProviderResponse {
-                    provider: PaymentType::Vipps,
+                Ok(PaymentResponse {
+                    provider: PaymentProvider::Vipps,
                     status: crate::models::PaymentStatus::Pending,
                     paid: 0,
                     reference: response.reference,
@@ -145,18 +137,17 @@ impl SolariPaymentService {
                 let provider = self
                     .stripe_provider
                     .as_ref()
-                    .ok_or(PaymentProviderError::NotConfigured(PaymentType::Stripe))?;
+                    .ok_or(SolariError::NotConfigured(PaymentProvider::Stripe))?;
 
                 provider
-                    .create_payment_intent(StripeCreatePaymentIntentRequest {
+                    .create_payment(StripePaymentRequest {
                         amount: request.amount,
                         currency: request.currency.unwrap_or_else(|| "nok".to_string()),
                         description: request.description,
-                        flow: StripePaymentFlow::Card,
                     })
                     .await
-                    .map(|intent| PaymentProviderResponse {
-                        provider: PaymentType::Stripe,
+                    .map(|intent| PaymentResponse {
+                        provider: PaymentProvider::Stripe,
                         status: crate::models::PaymentStatus::Pending,
                         paid: 0,
                         reference: Some(intent.id),
@@ -167,13 +158,11 @@ impl SolariPaymentService {
         }
     }
 
-    pub async fn vipps_fetch_access_token(
-        &self,
-    ) -> Result<VippsTokenResponse, PaymentProviderError> {
+    pub async fn vipps_fetch_access_token(&self) -> Result<VippsTokenResponse, SolariError> {
         let provider = self
             .vipps_provider
             .as_ref()
-            .ok_or(PaymentProviderError::NotConfigured(PaymentType::Vipps))?;
+            .ok_or(SolariError::NotConfigured(PaymentProvider::Vipps))?;
 
         let token = provider.fetch_access_token().await?;
 
@@ -183,11 +172,11 @@ impl SolariPaymentService {
         })
     }
 
-    pub async fn vipps_get_valid_token(&self) -> Result<VippsTokenResponse, PaymentProviderError> {
+    pub async fn vipps_get_valid_token(&self) -> Result<VippsTokenResponse, SolariError> {
         let provider = self
             .vipps_provider
             .as_ref()
-            .ok_or(PaymentProviderError::NotConfigured(PaymentType::Vipps))?;
+            .ok_or(SolariError::NotConfigured(PaymentProvider::Vipps))?;
 
         let token = provider.get_valid_token().await?;
 
@@ -200,33 +189,38 @@ impl SolariPaymentService {
     pub async fn stripe_create_card_payment_intent(
         &self,
         request: StripePayRequest,
-    ) -> Result<StripePaymentIntentResponse, PaymentProviderError> {
-        self.stripe_create_payment_intent(request, StripePaymentFlow::Card)
+    ) -> Result<StripePaymentResponse, SolariError> {
+        self.stripe_create_payment_intent(request, StripePaymentFlowType::Card)
             .await
     }
 
     pub async fn stripe_create_apple_pay_payment_intent(
         &self,
         request: StripePayRequest,
-    ) -> Result<StripePaymentIntentResponse, PaymentProviderError> {
-        self.stripe_create_payment_intent(request, StripePaymentFlow::ApplePay)
+    ) -> Result<StripePaymentResponse, SolariError> {
+        self.stripe_create_payment_intent(request, StripePaymentFlowType::ApplePay)
             .await
     }
 
     async fn stripe_create_payment_intent(
         &self,
         request: StripePayRequest,
-        flow: StripePaymentFlow,
-    ) -> Result<StripePaymentIntentResponse, PaymentProviderError> {
+        flow: StripePaymentFlowType,
+    ) -> Result<StripePaymentResponse, SolariError> {
         let flow_label = match flow {
-            StripePaymentFlow::Card => "card",
-            StripePaymentFlow::ApplePay => "apple_pay",
+            StripePaymentFlowType::Card => "card",
+            StripePaymentFlowType::ApplePay => "apple_pay",
         };
 
         let provider = self
             .stripe_provider
             .as_ref()
-            .ok_or(PaymentProviderError::NotConfigured(PaymentType::Stripe))?;
+            .ok_or(SolariError::NotConfigured(PaymentProvider::Stripe))?;
+
+        let currency = request
+            .currency
+            .clone()
+            .unwrap_or_else(|| "nok".to_string());
 
         info!(
             "Solari service creating Stripe intent: flow={} amount={} currency={}",
@@ -236,11 +230,10 @@ impl SolariPaymentService {
         );
 
         let intent_result = provider
-            .create_payment_intent(StripeCreatePaymentIntentRequest {
+            .create_payment(StripePaymentRequest {
                 amount: request.amount,
-                currency: request.currency.unwrap_or_else(|| "nok".to_string()),
+                currency: currency.clone(),
                 description: request.description,
-                flow,
             })
             .await;
 
@@ -260,44 +253,33 @@ impl SolariPaymentService {
             flow_label, intent.id, intent.status
         );
 
-        Ok(map_intent_response(intent, flow))
+        Ok(StripePaymentResponse {
+            provider: PaymentProvider::Stripe,
+            flow,
+            status: intent.status,
+            amount: intent.amount,
+            currency: intent.currency,
+            payment_intent_id: intent.id,
+        })
     }
 
     pub async fn vipps_get_payment_status(
         &self,
         reference: &str,
-    ) -> Result<VippsPaymentStatusResult, PaymentProviderError> {
+    ) -> Result<VippsPaymentResult, SolariError> {
         let provider = self
             .vipps_provider
             .as_ref()
-            .ok_or(PaymentProviderError::NotConfigured(PaymentType::Vipps))?;
+            .ok_or(SolariError::NotConfigured(PaymentProvider::Vipps))?;
 
-        let (reference, raw_status, status) = provider.fetch_payment_status(reference).await?;
+        let (reference, raw_status, status, currency) =
+            provider.fetch_payment_status(reference).await?;
 
-        Ok(VippsPaymentStatusResult {
+        Ok(VippsPaymentResult {
             reference,
             raw_status,
             status,
+            currency,
         })
-    }
-}
-
-fn map_intent_response(
-    intent: StripePaymentIntentResult,
-    flow: StripePaymentFlow,
-) -> StripePaymentIntentResponse {
-    StripePaymentIntentResponse {
-        provider: PaymentType::Stripe,
-        flow: match flow {
-            StripePaymentFlow::Card => StripePaymentFlowType::Card,
-            StripePaymentFlow::ApplePay => StripePaymentFlowType::ApplePay,
-        },
-        status: intent.status,
-        amount: intent.amount,
-        currency: intent.currency,
-        payment_intent_id: intent.id,
-        client_secret: intent.client_secret,
-        publishable_key: intent.publishable_key,
-        account_id: intent.account_id,
     }
 }

@@ -37,29 +37,20 @@ impl StripeConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum StripePaymentFlow {
-    Card,
-    ApplePay,
-}
-
 #[derive(Debug, Clone)]
-pub struct StripeCreatePaymentIntentRequest {
+pub struct StripePaymentRequest {
     pub amount: u32,
     pub currency: String,
     pub description: Option<String>,
-    pub flow: StripePaymentFlow,
 }
 
 #[derive(Debug, Clone)]
-pub struct StripePaymentIntentResult {
+pub struct StripePaymentResult {
     pub id: String,
-    pub client_secret: String,
+    // TODO - make enum
     pub status: String,
     pub amount: u32,
     pub currency: String,
-    pub publishable_key: String,
-    pub account_id: Option<String>,
 }
 
 #[cfg(feature = "stripe")]

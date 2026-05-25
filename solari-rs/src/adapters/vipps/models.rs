@@ -112,26 +112,36 @@ pub struct VippsCreatePaymentResponse {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct VippsGetPaymentResponse {
+pub struct VippsPaymentResponse {
     pub reference: Option<String>,
-
+    #[serde(default)]
+    pub amount: Option<VippsAmount>,
     #[serde(default)]
     pub state: Option<String>,
-
     #[serde(default)]
     pub status: Option<String>,
-
     #[serde(default)]
     pub aggregate: Option<VippsPaymentAggregate>,
 }
 
-impl VippsGetPaymentResponse {
+impl VippsPaymentResponse {
     pub fn effective_status(&self) -> Option<&str> {
         self.state
             .as_deref()
             .or(self.status.as_deref())
             .or_else(|| self.aggregate.as_ref().and_then(|a| a.state.as_deref()))
             .or_else(|| self.aggregate.as_ref().and_then(|a| a.status.as_deref()))
+    }
+
+    pub fn effective_currency(&self) -> Option<&str> {
+        self.amount
+            .as_ref()
+            .map(|a| a.currency.as_str())
+            .or_else(|| {
+                self.aggregate
+                    .as_ref()
+                    .and_then(|a| a.amount.as_ref().map(|amount| amount.currency.as_str()))
+            })
     }
 }
 
@@ -140,9 +150,10 @@ impl VippsGetPaymentResponse {
 pub struct VippsPaymentAggregate {
     #[serde(default)]
     pub state: Option<String>,
-
     #[serde(default)]
     pub status: Option<String>,
+    #[serde(default)]
+    pub amount: Option<VippsAmount>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

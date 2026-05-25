@@ -1,11 +1,14 @@
 use std::time::SystemTimeError;
 
-use crate::models::PaymentType;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+
+use crate::models::PaymentProvider;
 
 #[derive(Debug, thiserror::Error)]
-pub enum PaymentProviderError {
+pub enum SolariError {
     #[error("payment provider {0} is not configured")]
-    NotConfigured(PaymentType),
+    NotConfigured(PaymentProvider),
 
     #[error("invalid payment amount: {0}")]
     InvalidAmount(u32),
@@ -39,61 +42,65 @@ pub enum PaymentProviderError {
 
     #[error("failed to acquire write lock: {0}")]
     WriteLockError(String),
+
+    #[error("api error: {1}")]
+    ApiError(StatusCode, String),
 }
 
-#[cfg(any(feature = "vipps", feature = "stripe"))]
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
-#[cfg(any(feature = "vipps", feature = "stripe"))]
-use serde::Serialize;
-
-#[cfg(any(feature = "vipps", feature = "stripe"))]
-pub type ApiResult<T> = Result<T, SolariApiError>;
-
-#[cfg(any(feature = "vipps", feature = "stripe"))]
-#[derive(Debug, thiserror::Error)]
-pub enum SolariApiError {
-    #[error("{0}")]
-    Payment(#[from] PaymentProviderError),
-
-    #[error("{0}")]
-    BadRequest(String),
-}
-
-#[cfg(any(feature = "vipps", feature = "stripe"))]
-#[derive(Debug, Serialize)]
-struct ErrorBody {
-    error: String,
-}
-
-#[cfg(any(feature = "vipps", feature = "stripe"))]
-impl IntoResponse for SolariApiError {
-    fn into_response(self) -> Response {
-        let status = match &self {
-            SolariApiError::BadRequest(_) => StatusCode::BAD_REQUEST,
-            SolariApiError::Payment(err) => match err {
-                PaymentProviderError::InvalidAmount(_)
-                | PaymentProviderError::NotConfigured(_)
-                | PaymentProviderError::UnsupportedOperation(_) => StatusCode::BAD_REQUEST,
-                PaymentProviderError::AuthenticationFailed => StatusCode::UNAUTHORIZED,
-                PaymentProviderError::Timeout => StatusCode::GATEWAY_TIMEOUT,
-                PaymentProviderError::ProviderUnavailable => StatusCode::SERVICE_UNAVAILABLE,
-                PaymentProviderError::RequestFailed(_)
-                | PaymentProviderError::NetworkError(_)
-                | PaymentProviderError::Request(_) => StatusCode::BAD_GATEWAY,
-                PaymentProviderError::TimeError(_)
-                | PaymentProviderError::ReadLockError(_)
-                | PaymentProviderError::WriteLockError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            },
+impl IntoResponse for SolariError {
+    fn into_response(self) -> axum::response::Response {
+        let (status, message) = match self {
+            SolariError::NotConfigured(payment_provider) => (
+                StatusCode::BAD_REQUEST,
+                format!("payment provider {payment_provider} is not configured"),
+            ),
+            SolariError::InvalidAmount(amount) => (
+                StatusCode::BAD_REQUEST,
+                format!("invalid payment amount: {amount}"),
+            ),
+            SolariError::AuthenticationFailed => (
+                StatusCode::UNAUTHORIZED,
+                "payment provider authentication failed".to_string(),
+            ),
+            SolariError::Timeout => (
+                StatusCode::GATEWAY_TIMEOUT,
+                "payment request timed out".to_string(),
+            ),
+            SolariError::ProviderUnavailable => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                "payment provider is unavailable".to_string(),
+            ),
+            SolariError::RequestFailed(reason) => (
+                StatusCode::BAD_GATEWAY,
+                format!("payment request failed: {reason}"),
+            ),
+            SolariError::NetworkError(reason) => (
+                StatusCode::BAD_GATEWAY,
+                format!("network error while contacting payment provider: {reason}"),
+            ),
+            SolariError::Request(error) => (
+                StatusCode::BAD_GATEWAY,
+                format!("http request failed: {error}"),
+            ),
+            SolariError::UnsupportedOperation(operation) => (
+                StatusCode::NOT_IMPLEMENTED,
+                format!("payment operation is not supported: {operation}"),
+            ),
+            SolariError::TimeError(system_time_error) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("time calculation error: {system_time_error}"),
+            ),
+            SolariError::ReadLockError(reason) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("failed to acquire read lock: {reason}"),
+            ),
+            SolariError::WriteLockError(reason) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("failed to acquire write lock: {reason}"),
+            ),
+            SolariError::ApiError(status, message) => (status, message),
         };
 
-        let body = ErrorBody {
-            error: self.to_string(),
-        };
-
-        (status, Json(body)).into_response()
+        (status, message).into_response()
     }
 }

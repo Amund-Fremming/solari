@@ -3,7 +3,33 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize)]
+pub struct GenericPayBody {
+    pub amount: u32,
+    pub return_url: Option<String>,
+    pub currency: Option<String>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GenericStatusQuery {
+    pub provider: PaymentProvider,
+    pub reference: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GenericPaymentResponse {
+    pub provider: PaymentProvider,
+    pub status: String,
+    pub paid: u32,
+    pub currency: Option<String>,
+    pub reference: Option<String>,
+    pub redirect_url: Option<String>,
+    pub return_url: Option<String>,
+    pub raw_status: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum PaymentStatus {
     Pending,
     Completed,
@@ -11,9 +37,20 @@ pub enum PaymentStatus {
     Cancelled,
 }
 
-#[derive(Debug, Clone)]
-pub struct PaymentProviderResponse {
-    pub provider: PaymentType,
+impl ToString for PaymentStatus {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Pending => "pending".to_string(),
+            Self::Completed => "completed".to_string(),
+            Self::Failed => "failed".to_string(),
+            Self::Cancelled => "cancelled".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PaymentResponse {
+    pub provider: PaymentProvider,
     pub status: PaymentStatus,
     pub paid: u32,
     pub reference: Option<String>,
@@ -21,19 +58,17 @@ pub struct PaymentProviderResponse {
     pub return_url: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum PaymentType {
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Deserialize, Serialize)]
+pub enum PaymentProvider {
     Vipps,
-    ApplePay,
     Stripe,
 }
 
-impl fmt::Display for PaymentType {
+impl fmt::Display for PaymentProvider {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = match self {
-            PaymentType::Vipps => "vipps",
-            PaymentType::ApplePay => "apple_pay",
-            PaymentType::Stripe => "stripe",
+            PaymentProvider::Vipps => "vipps",
+            PaymentProvider::Stripe => "stripe",
         };
 
         f.write_str(name)
@@ -43,21 +78,27 @@ impl fmt::Display for PaymentType {
 pub type BoxFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 
 pub struct WebhookEvent<P> {
-    pub provider: PaymentType,
+    pub provider: PaymentProvider,
     pub payload: P,
 }
 
-pub type OnPayFn = Arc<dyn Fn(PaymentProviderResponse) -> BoxFuture + Send + Sync>;
+pub type OnPayFn = Arc<dyn Fn(PaymentResponse) -> BoxFuture + Send + Sync>;
 
 #[derive(Default)]
 pub struct SolariHandlers {
     pub on_pay: Option<OnPayFn>,
     #[cfg(feature = "vipps")]
-    pub on_vipps_webhook: Option<crate::adapters::vipps::models::VippsWebhookFn>,
+    pub on_vipps_webhook: Option<VippsWebhookFn>,
     #[cfg(feature = "stripe")]
-    pub on_stripe_webhook: Option<crate::adapters::stripe::models::StripeWebhookFn>,
+    pub on_stripe_webhook: Option<StripeWebhookFn>,
 }
 
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "stripe")]
+use crate::adapters::stripe::models::StripeWebhookFn;
+#[cfg(feature = "vipps")]
+use crate::adapters::vipps::models::VippsWebhookFn;
 #[cfg(any(feature = "vipps", feature = "stripe"))]
 use crate::SolariPaymentService;
 

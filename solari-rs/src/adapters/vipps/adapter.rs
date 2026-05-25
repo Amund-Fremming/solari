@@ -9,11 +9,11 @@ use tracing::{debug, error};
 use crate::{
     adapters::vipps::models::{
         CachedToken, VippsAccessTokenResponse, VippsConfig, VippsCreatePaymentRequest,
-        VippsCreatePaymentResponse, VippsGetPaymentResponse,
+        VippsCreatePaymentResponse, VippsPaymentResponse,
     },
-    error::PaymentProviderError,
-    models::{PaymentProviderResponse, PaymentStatus, PaymentType},
-    traits::PaymentProvider,
+    error::SolariError,
+    models::{PaymentProvider, PaymentResponse, PaymentStatus},
+    PaymentAdapter,
 };
 
 #[derive(Debug)]
@@ -33,19 +33,19 @@ impl VippsAdapter {
         }
     }
 
-    fn now() -> Result<u64, PaymentProviderError> {
+    fn now() -> Result<u64, SolariError> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())?;
         Ok(now)
     }
 
-    pub async fn get_valid_token(&self) -> Result<CachedToken, PaymentProviderError> {
+    pub async fn get_valid_token(&self) -> Result<CachedToken, SolariError> {
         {
             let lock = self
                 .token_cache
                 .read()
-                .map_err(|e| PaymentProviderError::ReadLockError(e.to_string()))?;
+                .map_err(|e| SolariError::ReadLockError(e.to_string()))?;
 
             if let Some(token) = &*lock {
                 let now = Self::now()?;
@@ -60,13 +60,13 @@ impl VippsAdapter {
         let mut lock = self
             .token_cache
             .write()
-            .map_err(|e| PaymentProviderError::WriteLockError(e.to_string()))?;
+            .map_err(|e| SolariError::WriteLockError(e.to_string()))?;
 
         *lock = Some(token.clone());
         Ok(token)
     }
 
-    pub async fn fetch_access_token(&self) -> Result<CachedToken, PaymentProviderError> {
+    pub async fn fetch_access_token(&self) -> Result<CachedToken, SolariError> {
         let url = format!(
             "{}/accesstoken/get",
             self.config.base_url.trim_end_matches('/')
@@ -89,7 +89,7 @@ impl VippsAdapter {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or("No body".to_string());
-            return Err(PaymentProviderError::RequestFailed(format!(
+            return Err(SolariError::RequestFailed(format!(
                 "vipps access token request failed ({status}): {body}"
             )));
         }
@@ -97,7 +97,7 @@ impl VippsAdapter {
         let payload: VippsAccessTokenResponse = response.json().await?;
         if payload.access_token.trim().is_empty() {
             error!("Received a empty access token");
-            return Err(PaymentProviderError::AuthenticationFailed);
+            return Err(SolariError::AuthenticationFailed);
         }
 
         let now = Self::now()?;
@@ -114,9 +114,9 @@ impl VippsAdapter {
         &self,
         amount: u32,
         return_url: Option<&str>,
-    ) -> Result<VippsCreatePaymentResponse, PaymentProviderError> {
+    ) -> Result<VippsCreatePaymentResponse, SolariError> {
         if amount == 0 {
-            return Err(PaymentProviderError::InvalidAmount(amount));
+            return Err(SolariError::InvalidAmount(amount));
         }
 
         let token = self.get_valid_token().await?;
@@ -152,7 +152,7 @@ impl VippsAdapter {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or("No body".to_string());
-            return Err(PaymentProviderError::RequestFailed(format!(
+            return Err(SolariError::RequestFailed(format!(
                 "vipps create payment failed ({status}): {body}"
             )));
         }
@@ -167,9 +167,9 @@ impl VippsAdapter {
     pub async fn fetch_payment_status(
         &self,
         reference: &str,
-    ) -> Result<(Option<String>, String, PaymentStatus), PaymentProviderError> {
+    ) -> Result<(Option<String>, String, PaymentStatus, Option<String>), SolariError> {
         if reference.trim().is_empty() {
-            return Err(PaymentProviderError::RequestFailed(
+            return Err(SolariError::RequestFailed(
                 "vipps payment reference cannot be empty".to_string(),
             ));
         }
@@ -196,17 +196,18 @@ impl VippsAdapter {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or("No body".to_string());
-            return Err(PaymentProviderError::RequestFailed(format!(
+            return Err(SolariError::RequestFailed(format!(
                 "vipps get payment status failed ({status}): {body}"
             )));
         }
 
-        let payload: VippsGetPaymentResponse = response.json().await?;
+        let payload: VippsPaymentResponse = response.json().await?;
+        let currency = payload.effective_currency().map(str::to_string);
         let raw_status = payload
             .effective_status()
             .map(str::to_string)
             .ok_or_else(|| {
-                PaymentProviderError::RequestFailed(
+                SolariError::RequestFailed(
                     "vipps payment status response did not include a status/state".to_string(),
                 )
             })?;
@@ -215,6 +216,7 @@ impl VippsAdapter {
             payload.reference,
             raw_status.clone(),
             map_vipps_payment_status(&raw_status),
+            currency,
         ))
     }
 }
@@ -232,12 +234,12 @@ fn map_vipps_payment_status(raw_status: &str) -> PaymentStatus {
 }
 
 #[async_trait]
-impl PaymentProvider for VippsAdapter {
-    async fn pay(&self, amount: u32) -> Result<PaymentProviderResponse, PaymentProviderError> {
+impl PaymentAdapter for VippsAdapter {
+    async fn pay(&self, amount: u32) -> Result<PaymentResponse, SolariError> {
         self.create_payment(amount, None).await?;
 
-        Ok(PaymentProviderResponse {
-            provider: PaymentType::Vipps,
+        Ok(PaymentResponse {
+            provider: PaymentProvider::Vipps,
             status: PaymentStatus::Pending,
             paid: amount,
             reference: None,

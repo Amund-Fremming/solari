@@ -5,7 +5,7 @@ use axum::Router;
 use crate::models::AppState;
 
 #[cfg(feature = "vipps")]
-use crate::{PaymentProviderError, SolariPaymentService, VippsConfig};
+use crate::{SolariError, SolariPaymentService, VippsConfig};
 
 #[cfg(all(feature = "vipps", feature = "stripe"))]
 use crate::StripeConfig;
@@ -19,7 +19,7 @@ pub fn app_router(state: AppState) -> Router {
 }
 
 #[cfg(feature = "vipps")]
-pub fn solari_router_with_vipps(vipps_config: VippsConfig) -> Result<Router, PaymentProviderError> {
+pub fn solari_router_with_vipps(vipps_config: VippsConfig) -> Result<Router, SolariError> {
     let mut payment_module = SolariPaymentService::new()?;
     payment_module.vipps(vipps_config);
 
@@ -27,7 +27,7 @@ pub fn solari_router_with_vipps(vipps_config: VippsConfig) -> Result<Router, Pay
 }
 
 #[cfg(feature = "vipps")]
-pub fn app_router_with_vipps(vipps_config: VippsConfig) -> Result<Router, PaymentProviderError> {
+pub fn app_router_with_vipps(vipps_config: VippsConfig) -> Result<Router, SolariError> {
     let mut payment_module = SolariPaymentService::new()?;
     payment_module.vipps(vipps_config);
 
@@ -38,7 +38,7 @@ pub fn app_router_with_vipps(vipps_config: VippsConfig) -> Result<Router, Paymen
 pub fn solari_router_with_vipps_and_stripe(
     vipps_config: VippsConfig,
     stripe_config: StripeConfig,
-) -> Result<Router, PaymentProviderError> {
+) -> Result<Router, SolariError> {
     let mut payment_module = SolariPaymentService::new()?;
     payment_module.vipps(vipps_config);
     payment_module.stripe(stripe_config);
@@ -50,7 +50,7 @@ pub fn solari_router_with_vipps_and_stripe(
 pub fn app_router_with_vipps_and_stripe(
     vipps_config: VippsConfig,
     stripe_config: StripeConfig,
-) -> Result<Router, PaymentProviderError> {
+) -> Result<Router, SolariError> {
     let mut payment_module = SolariPaymentService::new()?;
     payment_module.vipps(vipps_config);
     payment_module.stripe(stripe_config);
