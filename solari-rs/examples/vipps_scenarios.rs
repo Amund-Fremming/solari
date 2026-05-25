@@ -1,7 +1,7 @@
 use std::{env, error::Error};
 
 use solari::{PayRequest, PaymentStatus, SolariPaymentService, VippsConfig, VippsPayRequest};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 fn required_env(key: &str) -> Result<String, Box<dyn Error>> {
     env::var(key).map_err(|_| format!("missing required env var: {key}").into())
@@ -16,7 +16,11 @@ fn has_required_vipps_env() -> bool {
         "VIPPS_MSN",
     ]
     .iter()
-    .all(|key| env::var(key).ok().is_some_and(|value| !value.trim().is_empty()))
+    .all(|key| {
+        env::var(key)
+            .ok()
+            .is_some_and(|value| !value.trim().is_empty())
+    })
 }
 
 fn vipps_config_from_env() -> Result<VippsConfig, Box<dyn Error>> {
@@ -114,7 +118,17 @@ async fn token_cache_scenario() -> Result<(String, String, u64), Box<dyn Error>>
 
 async fn create_payment_scenario(
     amount: u32,
-) -> Result<(PaymentStatus, PaymentStatus, String, bool, String), Box<dyn Error>> {
+) -> Result<
+    (
+        PaymentStatus,
+        PaymentStatus,
+        String,
+        Option<String>,
+        bool,
+        String,
+    ),
+    Box<dyn Error>,
+> {
     let mut module = SolariPaymentService::new()?;
     module.vipps(vipps_config_from_env()?);
 
@@ -165,10 +179,15 @@ async fn create_payment_scenario(
         &status_response.status,
     )?;
 
+    if status_response.currency.is_none() {
+        warn!("Vipps status response did not include currency");
+    }
+
     Ok((
         PaymentStatus::Pending,
         status_response.status,
         status_response.raw_status,
+        status_response.currency,
         redirect_url_present,
         redirect_url_preview,
     ))
@@ -206,8 +225,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("");
     info!("Scenario 3: Create Payment then Fetch Payment Status");
     match create_payment_scenario(100).await {
-        Ok((expected_status, received_status, raw_status, redirect_url_present, redirect_url_preview)) => info!(
-            "Success: expected_status={expected_status:?}, received_status={received_status:?}, raw_status={raw_status}, redirect_url_present={redirect_url_present}, redirect_preview={redirect_url_preview}"
+        Ok((expected_status, received_status, raw_status, currency, redirect_url_present, redirect_url_preview)) => info!(
+            "Success: expected_status={expected_status:?}, received_status={received_status:?}, raw_status={raw_status}, currency={currency:?}, redirect_url_present={redirect_url_present}, redirect_preview={redirect_url_preview}"
         ),
         Err(e) => error!("Failed: {e}"),
     }

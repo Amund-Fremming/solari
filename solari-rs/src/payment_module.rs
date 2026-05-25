@@ -8,7 +8,7 @@ use crate::{
 };
 #[cfg(any(feature = "vipps", feature = "stripe"))]
 use std::time::Duration;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 #[cfg(feature = "stripe")]
 use crate::adapters::stripe::models::StripeConfig as InternalStripeConfig;
@@ -253,12 +253,19 @@ impl SolariPaymentService {
             flow_label, intent.id, intent.status
         );
 
+        if !intent.currency.eq_ignore_ascii_case(&currency) {
+            warn!(
+                "Stripe returned currency '{}' but system requested '{}'; preserving requested currency in response",
+                intent.currency, currency
+            );
+        }
+
         Ok(StripePaymentResponse {
             provider: PaymentProvider::Stripe,
             flow,
             status: intent.status,
             amount: intent.amount,
-            currency: intent.currency,
+            currency,
             payment_intent_id: intent.id,
         })
     }

@@ -1,4 +1,4 @@
-#[cfg(feature = "stripe")]
+#[cfg(any(feature = "stripe", feature = "vipps"))]
 use axum::response::IntoResponse;
 use axum::{
     extract::{Path, Query, State},

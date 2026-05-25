@@ -1,7 +1,7 @@
 use std::{env, error::Error};
 use tracing::info;
 
-use solari::{PayRequest, SolariPaymentService, StripeConfig, StripePayRequest};
+use solari::{SolariPaymentService, StripeConfig, StripePayRequest};
 
 fn required_env(key: &str) -> Result<String, Box<dyn Error>> {
     env::var(key).map_err(|_| format!("missing required env var: {key}").into())
@@ -53,24 +53,38 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut service = SolariPaymentService::new()?;
     service.stripe(stripe_config_from_env()?);
 
-    let response = service
-        .pay(PayRequest::Stripe(StripePayRequest {
+    let card_intent = service
+        .stripe_create_card_payment_intent(StripePayRequest {
             amount: 2500,
             currency: Some("nok".to_string()),
-            description: Some("Solari Stripe smoke example".to_string()),
-        }))
+            description: Some("Solari Stripe card example".to_string()),
+        })
         .await?;
 
     info!(
-        "Stripe pay call completed: provider={}, status={}, reference={:?}",
-        response.provider,
-        match response.status {
-            solari::PaymentStatus::Pending => "pending",
-            solari::PaymentStatus::Completed => "completed",
-            solari::PaymentStatus::Failed => "failed",
-            solari::PaymentStatus::Cancelled => "cancelled",
-        },
-        response.reference
+        "Stripe card intent created: flow={:?}, status={}, amount={}, currency={}, intent_id={}",
+        card_intent.flow,
+        card_intent.status,
+        card_intent.amount,
+        card_intent.currency,
+        card_intent.payment_intent_id
+    );
+
+    let apple_pay_intent = service
+        .stripe_create_apple_pay_payment_intent(StripePayRequest {
+            amount: 2500,
+            currency: Some("nok".to_string()),
+            description: Some("Solari Stripe Apple Pay example".to_string()),
+        })
+        .await?;
+
+    info!(
+        "Stripe apple pay intent created: flow={:?}, status={}, amount={}, currency={}, intent_id={}",
+        apple_pay_intent.flow,
+        apple_pay_intent.status,
+        apple_pay_intent.amount,
+        apple_pay_intent.currency,
+        apple_pay_intent.payment_intent_id
     );
 
     Ok(())
