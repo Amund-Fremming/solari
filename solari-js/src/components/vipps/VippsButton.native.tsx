@@ -2,7 +2,12 @@ import { createElement } from "react";
 import { Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import { SvgXml } from "react-native-svg";
 import type { VippsButtonProps } from "./VippsButton";
-import { VIPPS_COLORS } from "../../services/solariPaymentService";
+
+export const VIPPS_COLORS = {
+  primary: "#ff5b24",
+  dark: "#23160d",
+  light: "#fff8ef",
+} as const;
 
 const VIPPS_BUTTON_SVG_XML = `<svg width="300" height="44" viewBox="0 0 300 44" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="300" height="44" rx="22" fill="#FF5B24"/>

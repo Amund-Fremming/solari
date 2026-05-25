@@ -17,12 +17,6 @@ import type {
   VippsTokenResponse,
 } from "../types/types.js";
 
-export const VIPPS_COLORS = {
-  primary: "#ff5b24",
-  dark: "#23160d",
-  light: "#fff8ef",
-} as const;
-
 const DEFAULT_BASE_URL = "http://127.0.0.1:3001";
 const TERMINAL_PAYMENT_STATUSES = new Set(["completed", "failed", "cancelled"]);
 

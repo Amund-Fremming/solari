@@ -17,6 +17,7 @@ pub use payment_module::{
     StripePaymentIntentResponse, VippsConfig, VippsCreatePaymentResult, VippsPayRequest,
     VippsPaymentStatusResult, VippsTokenResponse,
 };
+pub use traits::PaymentProvider;
 
 #[cfg(any(feature = "vipps", feature = "stripe"))]
 pub use solari_router::{Solari, SolariApi, SolariRouter};

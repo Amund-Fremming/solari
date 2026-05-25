@@ -1,3 +1,4 @@
+#[cfg(feature = "stripe")]
 use serde::Deserialize;
 
 #[cfg(feature = "stripe")]
@@ -59,25 +60,6 @@ pub struct StripePaymentIntentResult {
     pub currency: String,
     pub publishable_key: String,
     pub account_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct StripePaymentIntentResponse {
-    id: String,
-    client_secret: Option<String>,
-    status: String,
-    amount: u32,
-    currency: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct StripeErrorEnvelope {
-    error: Option<StripeErrorObject>,
-}
-
-#[derive(Debug, Deserialize)]
-struct StripeErrorObject {
-    message: Option<String>,
 }
 
 #[cfg(feature = "stripe")]

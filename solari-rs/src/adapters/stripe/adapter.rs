@@ -27,6 +27,7 @@ pub struct StripeAdapter {
 }
 
 impl StripeAdapter {
+    #[cfg(feature = "stripe")]
     pub fn new(client: reqwest::Client, config: StripeConfig) -> Self {
         Self { client, config }
     }

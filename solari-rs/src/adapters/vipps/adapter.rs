@@ -24,6 +24,7 @@ pub struct VippsAdapter {
 }
 
 impl VippsAdapter {
+    #[cfg(feature = "vipps")]
     pub fn new(client: reqwest::Client, config: VippsConfig) -> Self {
         Self {
             client,

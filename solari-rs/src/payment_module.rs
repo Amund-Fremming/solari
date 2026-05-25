@@ -9,6 +9,7 @@ use crate::{
     error::PaymentProviderError,
     models::{PaymentProviderResponse, PaymentType},
 };
+#[cfg(any(feature = "vipps", feature = "stripe"))]
 use std::time::Duration;
 use tracing::{error, info};
 
@@ -22,6 +23,7 @@ pub use crate::adapters::stripe::models::StripeConfig;
 pub use crate::adapters::vipps::models::VippsConfig;
 
 pub struct SolariPaymentService {
+    #[cfg(any(feature = "vipps", feature = "stripe"))]
     client: reqwest::Client,
     vipps_provider: Option<VippsAdapter>,
     stripe_provider: Option<StripeAdapter>,
@@ -86,6 +88,7 @@ pub enum PayRequest {
 
 impl SolariPaymentService {
     pub fn new() -> Result<Self, PaymentProviderError> {
+        #[cfg(any(feature = "vipps", feature = "stripe"))]
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10))
@@ -95,6 +98,7 @@ impl SolariPaymentService {
             .build()?;
 
         Ok(SolariPaymentService {
+            #[cfg(any(feature = "vipps", feature = "stripe"))]
             client,
             vipps_provider: None,
             stripe_provider: None,
